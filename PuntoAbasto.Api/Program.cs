@@ -134,6 +134,17 @@ try
 
     builder.Services.AddScoped<IAuthService, AuthService>();
 
+    // ── Cliente HTTP hacia la Admin API de Supabase Auth (alta/baja de personal) ──
+    builder.Services.AddHttpClient(UsuarioService.SupabaseAdminHttpClientName, client =>
+    {
+        client.BaseAddress = new Uri($"{supabaseOptions.Authority}/admin/");
+        client.DefaultRequestHeaders.Add("apikey", supabaseOptions.ServiceRoleKey);
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", supabaseOptions.ServiceRoleKey);
+        client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+    });
+
+    builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+
     // ── Módulo Pedidos ───────────────────────────────────────────────
     builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
     builder.Services.AddScoped<IPedidoService, PedidoService>();
@@ -144,6 +155,10 @@ try
     builder.Services.AddScoped<IProductoService, ProductoService>();
     builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
     builder.Services.AddScoped<IInventarioService, InventarioService>();
+
+    // ── Módulo Clientes ──────────────────────────────────────────────
+    builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
+    builder.Services.AddScoped<IClienteService, ClienteService>();
 
     // ── Módulo Notas de Venta ────────────────────────────────────────
     builder.Services.AddScoped<INotaVentaRepository, NotaVentaRepository>();

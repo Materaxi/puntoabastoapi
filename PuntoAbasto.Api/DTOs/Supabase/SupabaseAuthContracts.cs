@@ -27,6 +27,46 @@ internal class SupabaseErrorResponse
     [JsonPropertyName("msg")]
     public string? Msg { get; set; }
 
+    [JsonPropertyName("message")]
+    public string? MessageField { get; set; }
+
     [JsonIgnore]
-    public string? Message => ErrorDescription ?? Msg;
+    public string? Message => ErrorDescription ?? Msg ?? MessageField;
+}
+
+/// <summary>Body para POST /auth/v1/admin/users (Supabase Admin API — crea un usuario ya confirmado).</summary>
+internal class SupabaseAdminCreateUserRequest
+{
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("password")]
+    public string Password { get; set; } = string.Empty;
+
+    [JsonPropertyName("email_confirm")]
+    public bool EmailConfirm { get; set; } = true;
+
+    [JsonPropertyName("user_metadata")]
+    public Dictionary<string, string> UserMetadata { get; set; } = new();
+}
+
+/// <summary>Body para PUT /auth/v1/admin/users/{id}. "ban_duration" es lo que efectivamente
+/// bloquea el login cuando se desactiva un usuario (no alcanza con activo=false local).</summary>
+internal class SupabaseAdminUpdateUserRequest
+{
+    [JsonPropertyName("user_metadata")]
+    public Dictionary<string, string>? UserMetadata { get; set; }
+
+    [JsonPropertyName("ban_duration")]
+    public string? BanDuration { get; set; }
+}
+
+/// <summary>Forma cruda (parcial) de la respuesta de la Admin API al crear/actualizar un usuario.</summary>
+internal class SupabaseAdminUserResponse
+{
+    [JsonPropertyName("id")]
+    public Guid Id { get; set; }
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
 }
