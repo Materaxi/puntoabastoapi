@@ -31,6 +31,7 @@ public static class EnvironmentConfig
         MapIfPresent("REFRESH_TOKEN_DAYS", "Jwt:RefreshTokenDays", overrides);
 
         MapIfPresent("FRONTEND_URL", "App:FrontendUrl", overrides);
+        MapIfPresent("ADMIN_URL", "App:AdminUrl", overrides);
 
         if (overrides.Count > 0)
         {

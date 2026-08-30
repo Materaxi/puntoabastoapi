@@ -63,11 +63,18 @@ try
     builder.Services.AddControllers();
 
     // ── CORS ─────────────────────────────────────────────────────────
+    // FrontendUrl = tienda pública (punto-abasto, puerto 5173 en dev).
+    // AdminUrl = panel administrativo (punto-abasto-admin, puerto 5174 en dev).
     const string corsPolicyName = "PuntoAbastoCors";
+    var corsOrigins = new[] { appOptions.FrontendUrl, appOptions.AdminUrl, "http://localhost:5173", "http://localhost:5174" }
+        .Where(o => !string.IsNullOrWhiteSpace(o))
+        .Distinct()
+        .ToArray();
+
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(corsPolicyName, policy => policy
-            .WithOrigins(appOptions.FrontendUrl, "http://localhost:5173")
+            .WithOrigins(corsOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod());
     });
