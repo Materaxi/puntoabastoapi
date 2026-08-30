@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+*.suo
+
+# Secrets locales (dotnet user-secrets los guarda fuera del repo,
+# pero por si alguien exporta algo a mano)
+appsettings.Local.json
+appsettings.*.local.json

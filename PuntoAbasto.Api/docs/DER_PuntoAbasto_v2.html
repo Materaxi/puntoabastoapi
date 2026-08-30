@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DER v2 – Punto Abasto Sistema de Ventas</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f5f7f2; color: #1a1a1a; padding: 20px; }
+  h1 { font-size: 20px; font-weight: 700; color: #1e7a10; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #666; margin-bottom: 16px; }
+  .version { display: inline-block; background: #1e7a10; color: white; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 50px; margin-left: 8px; vertical-align: middle; }
+  .new-badge { display: inline-block; background: #f5c518; color: #1a1a1a; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; font-size: 12px; color: #555; }
+  .leg { display: flex; align-items: center; gap: 6px; }
+  .leg-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  #erd { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  #erd svg { max-width: 100%; height: auto; }
+
+  .tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 24px; }
+  .table-card { background: white; border-radius: 10px; padding: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); border-left: 4px solid #ccc; }
+  .table-card.auth      { border-color: #185FA5; }
+  .table-card.clientes  { border-color: #3B6D11; }
+  .table-card.catalogo  { border-color: #854F0B; }
+  .table-card.inventario{ border-color: #0F6E56; background: #f0fdf8; }
+  .table-card.ventas    { border-color: #6E3A8A; }
+  .table-card.config    { border-color: #5F5E5A; }
+  .table-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #1a1a1a; }
+  .table-fields { font-size: 11px; color: #555; line-height: 1.9; }
+  .pk { color: #185FA5; font-weight: 700; }
+  .fk { color: #854F0B; font-weight: 600; }
+  .uk { color: #3B6D11; font-weight: 600; }
+
+  .estados { background: white; border-radius: 10px; padding: 16px; margin-top: 24px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+  .estados h2 { font-size: 14px; font-weight: 700; color: #1e7a10; margin-bottom: 12px; }
+  .estados-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .estado-badge { background: #e8f5e2; color: #1e7a10; border: 1px solid #c0ddb0; padding: 4px 10px; border-radius: 50px; font-weight: 600; }
+  .arrow-s { color: #aaa; font-size: 16px; }
+  .estado-badge.cancelado { background: #fff0f0; color: #c0392b; border-color: #f0bfbf; }
+
+  .inventario-box { background: #f0fdf8; border: 1.5px solid #0F6E56; border-radius: 10px; padding: 16px; margin-top: 24px; }
+  .inventario-box h2 { font-size: 14px; font-weight: 700; color: #0F6E56; margin-bottom: 10px; }
+  .inv-flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; margin-bottom: 12px; }
+  .inv-badge { background: #e1f5ee; color: #0F6E56; border: 1px solid #9FE1CB; padding: 4px 10px; border-radius: 50px; font-weight: 600; }
+  .inv-badge.entrada { background: #e8f5e2; color: #1e7a10; border-color: #c0ddb0; }
+  .inv-badge.salida  { background: #fff0f0; color: #c0392b; border-color: #f0bfbf; }
+  .inv-badge.ajuste  { background: #fff9e0; color: #9A6C00; border-color: #f0d878; }
+  .inv-nota { font-size: 11px; color: #555; line-height: 1.7; }
+
+  .modulos { background: white; border-radius: 10px; padding: 16px; margin-top: 24px; box-shadow: 0 1px 6px rgba(0,0,0,0.07); }
+  .modulos h2 { font-size: 14px; font-weight: 700; color: #1e7a10; margin-bottom: 10px; }
+  .modulo-row { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+  .modulo-row:last-child { border-bottom: none; }
+  .modulo-nombre { font-weight: 700; min-width: 180px; color: #333; }
+  .tag { display: inline-block; background: #f0f0f0; border-radius: 4px; padding: 1px 6px; margin: 1px; font-size: 11px; color: #444; font-family: monospace; }
+  .tag.new { background: #fff9c0; color: #7a5c00; }
+
+  /* Instrucciones Claude Code */
+  .claude-code-box { background: #1a1a2e; color: #e0e0e0; border-radius: 10px; padding: 16px; margin-top: 24px; font-family: monospace; font-size: 12px; line-height: 1.8; }
+  .claude-code-box h2 { font-family: Arial, sans-serif; font-size: 14px; color: #f5c518; margin-bottom: 12px; }
+  .claude-code-box .comment { color: #6a8759; }
+  .claude-code-box .cmd { color: #a9dc76; }
+  .claude-code-box .path { color: #78dce8; }
+</style>
+</head>
+<body>
+
+<h1>DER — Punto Abasto · Sistema de Gestión de Ventas <span class="version">v2.0</span></h1>
+<p class="subtitle">16 tablas · PostgreSQL · API .NET 8 · Railway.app · <strong>Incluye módulo de Inventario</strong></p>
+
+<div class="legend">
+  <span class="leg"><span class="leg-dot" style="background:#185FA5"></span>Autenticación</span>
+  <span class="leg"><span class="leg-dot" style="background:#3B6D11"></span>Clientes &amp; Pedidos</span>
+  <span class="leg"><span class="leg-dot" style="background:#854F0B"></span>Catálogo</span>
+  <span class="leg"><span class="leg-dot" style="background:#0F6E56"></span>Inventario ✦ nuevo</span>
+  <span class="leg"><span class="leg-dot" style="background:#6E3A8A"></span>Ventas</span>
+  <span class="leg"><span class="leg-dot" style="background:#5F5E5A"></span>Config &amp; Auditoría</span>
+</div>
+
+<div id="erd"></div>
+
+<!-- ══════════════════════════════════════════════
+     TARJETAS DE TABLAS
+     ══════════════════════════════════════════════ -->
+<div class="tables-grid">
+
+  <!-- AUTENTICACIÓN -->
+  <div class="table-card auth">
+    <div class="table-name">USUARIOS</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      nombre varchar(100)<br>
+      <span class="uk">UK</span> email varchar(150)<br>
+      password_hash varchar(255)<br>
+      rol varchar(20) — admin | vendedor | delivery<br>
+      activo boolean default true<br>
+      ultimo_login timestamp<br>
+      created_at / updated_at timestamp
+    </div>
+  </div>
+
+  <div class="table-card auth">
+    <div class="table-name">ROLES</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id serial<br>
+      <span class="uk">UK</span> nombre varchar(50)<br>
+      descripcion text
+    </div>
+  </div>
+
+  <div class="table-card auth">
+    <div class="table-name">REFRESH_TOKENS</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> usuario_id → USUARIOS<br>
+      <span class="uk">UK</span> token text<br>
+      expires_at timestamp<br>
+      revocado boolean default false<br>
+      created_at timestamp
+    </div>
+  </div>
+
+  <!-- CLIENTES Y PEDIDOS -->
+  <div class="table-card clientes">
+    <div class="table-name">CLIENTES</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      nombre varchar(100)<br>
+      <span class="uk">UK</span> telefono varchar(20)<br>
+      direccion text<br>
+      referencia_direccion text<br>
+      email varchar(150) nullable<br>
+      total_pedidos int default 0<br>
+      total_gastado decimal(10,2) default 0<br>
+      created_at / updated_at timestamp
+    </div>
+  </div>
+
+  <div class="table-card clientes">
+    <div class="table-name">PEDIDOS</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="uk">UK</span> numero varchar(20) — PED-0001<br>
+      <span class="fk">FK</span> cliente_id → CLIENTES<br>
+      <span class="fk">FK</span> usuario_id → USUARIOS (nullable)<br>
+      estado varchar(20)<br>
+      origen varchar(20) — whatsapp | web | telefono<br>
+      subtotal / descuento / total decimal(10,2)<br>
+      notas text<br>
+      fecha_pedido timestamp<br>
+      fecha_entrega_est / fecha_entrega_real timestamp<br>
+      created_at timestamp
+    </div>
+  </div>
+
+  <div class="table-card clientes">
+    <div class="table-name">PEDIDO_ITEMS</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> pedido_id → PEDIDOS<br>
+      <span class="fk">FK</span> producto_unidad_id → PRODUCTO_UNIDADES (nullable)<br>
+      producto_nombre varchar(150) — snapshot<br>
+      unidad_label varchar(50) — snapshot<br>
+      precio_unit decimal(10,2)<br>
+      cantidad decimal(10,3)<br>
+      subtotal decimal(10,2)
+    </div>
+  </div>
+
+  <div class="table-card clientes">
+    <div class="table-name">PEDIDO_ESTADOS</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> pedido_id → PEDIDOS<br>
+      <span class="fk">FK</span> usuario_id → USUARIOS<br>
+      estado_anterior varchar(20)<br>
+      estado_nuevo varchar(20)<br>
+      observacion text<br>
+      created_at timestamp
+    </div>
+  </div>
+
+  <!-- CATÁLOGO -->
+  <div class="table-card catalogo">
+    <div class="table-name">CATEGORIAS</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id serial<br>
+      <span class="uk">UK</span> nombre varchar(80)<br>
+      <span class="uk">UK</span> slug varchar(80)<br>
+      emoji varchar(10)<br>
+      orden int default 0
+    </div>
+  </div>
+
+  <div class="table-card catalogo">
+    <div class="table-name">PRODUCTOS</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> categoria_id → CATEGORIAS<br>
+      nombre varchar(150)<br>
+      descripcion text<br>
+      emoji varchar(10)<br>
+      imagen_url varchar(255)<br>
+      badge varchar(50)<br>
+      activo boolean default true<br>
+      disponible boolean default true<br>
+      orden int default 0<br>
+      created_at / updated_at timestamp
+    </div>
+  </div>
+
+  <div class="table-card catalogo">
+    <div class="table-name">PRODUCTO_UNIDADES</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> producto_id → PRODUCTOS<br>
+      label varchar(50) — Kg | Libra | Amarro<br>
+      precio decimal(10,2)<br>
+      es_default boolean default false<br>
+      orden int default 0
+    </div>
+  </div>
+
+  <!-- INVENTARIO — NUEVO -->
+  <div class="table-card inventario">
+    <div class="table-name">INVENTARIO <span class="new-badge">NUEVO</span></div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> producto_unidad_id → PRODUCTO_UNIDADES<br>
+      stock_actual decimal(10,3) default 0<br>
+      stock_minimo decimal(10,3) default 0 — alerta<br>
+      stock_maximo decimal(10,3) nullable — límite compra<br>
+      unidad_medida varchar(30) — kg | unidad | amarro<br>
+      alerta_activa boolean default false — auto al llegar al mínimo<br>
+      updated_at timestamp
+    </div>
+  </div>
+
+  <div class="table-card inventario">
+    <div class="table-name">INVENTARIO_MOVIMIENTOS <span class="new-badge">NUEVO</span></div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> inventario_id → INVENTARIO<br>
+      <span class="fk">FK</span> pedido_id → PEDIDOS (nullable)<br>
+      <span class="fk">FK</span> usuario_id → USUARIOS<br>
+      tipo varchar(20) — entrada | salida | ajuste<br>
+      cantidad decimal(10,3)<br>
+      stock_anterior decimal(10,3)<br>
+      stock_nuevo decimal(10,3)<br>
+      motivo text — pedido confirmado | compra | ajuste manual<br>
+      created_at timestamp
+    </div>
+  </div>
+
+  <!-- VENTAS -->
+  <div class="table-card ventas">
+    <div class="table-name">NOTAS_VENTA</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="uk">UK</span> numero varchar(20) — NV-0001<br>
+      <span class="fk">FK</span> pedido_id → PEDIDOS (unique)<br>
+      <span class="fk">FK</span> usuario_id → USUARIOS<br>
+      subtotal / descuento / total decimal(10,2)<br>
+      estado varchar(20) — emitida | anulada<br>
+      observaciones text<br>
+      fecha_emision timestamp<br>
+      created_at timestamp
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="table-card config">
+    <div class="table-name">AUDITORIA</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id uuid<br>
+      <span class="fk">FK</span> usuario_id → USUARIOS (nullable)<br>
+      tabla varchar(80)<br>
+      operacion varchar(10) — INSERT | UPDATE | DELETE<br>
+      registro_id uuid<br>
+      datos_anteriores jsonb<br>
+      datos_nuevos jsonb<br>
+      ip varchar(45)<br>
+      created_at timestamp
+    </div>
+  </div>
+
+  <div class="table-card config">
+    <div class="table-name">CONFIG</div>
+    <div class="table-fields">
+      <span class="pk">PK</span> id serial<br>
+      <span class="uk">UK</span> clave varchar(100)<br>
+      valor text<br>
+      descripcion text<br>
+      updated_at timestamp
+    </div>
+  </div>
+
+</div>
+
+<!-- INVENTARIO — explicación del flujo -->
+<div class="inventario-box">
+  <h2>Módulo de Inventario — Cómo funciona</h2>
+  <div class="inv-flow">
+    <span class="inv-badge entrada">entrada</span>
+    <span class="arrow-s">→</span>
+    <span style="font-size:11px;color:#555">Dueño compra mercadería y registra la cantidad en el panel</span>
+  </div>
+  <div class="inv-flow">
+    <span class="inv-badge salida">salida</span>
+    <span class="arrow-s">→</span>
+    <span style="font-size:11px;color:#555">Se descuenta automáticamente cuando un pedido pasa a estado <strong>confirmado</strong></span>
+  </div>
+  <div class="inv-flow">
+    <span class="inv-badge ajuste">ajuste</span>
+    <span class="arrow-s">→</span>
+    <span style="font-size:11px;color:#555">Corrección manual (merma, producto en mal estado, conteo físico)</span>
+  </div>
+  <div class="inv-nota">
+    <strong>Relación clave:</strong> <code>INVENTARIO</code> se vincula a <code>PRODUCTO_UNIDADES</code> (no a <code>PRODUCTOS</code> directamente), porque el stock depende de la unidad.<br>
+    Ejemplo: Acelga tiene 2 unidades de venta → <em>Amarro</em> (45 disponibles) y <em>Amarro Grande</em> (3 disponibles) — cada una con su propio registro de inventario.<br><br>
+    <strong>Alerta automática:</strong> cuando <code>stock_actual</code> baja de <code>stock_minimo</code>, el campo <code>alerta_activa</code> se activa (vía trigger en PostgreSQL o lógica en la API) y aparece en el panel del dueño.<br><br>
+    <strong>PEDIDO_ITEMS</strong> ahora referencia <code>producto_unidad_id</code> en lugar de <code>producto_id</code>, para que la API sepa exactamente qué unidad descontar del inventario al confirmar el pedido.
+  </div>
+</div>
+
+<!-- ESTADOS -->
+<div class="estados">
+  <h2>Flujo de estados — PEDIDOS.estado</h2>
+  <div class="estados-flow">
+    <span class="estado-badge">recibido</span>
+    <span class="arrow-s">→</span>
+    <span class="estado-badge">confirmado</span>
+    <span class="arrow-s">↓ descuenta stock</span>
+    <span class="estado-badge">preparando</span>
+    <span class="arrow-s">→</span>
+    <span class="estado-badge">en_camino</span>
+    <span class="arrow-s">→</span>
+    <span class="estado-badge">entregado</span>
+    &nbsp;|&nbsp;
+    <span class="estado-badge cancelado">cancelado</span>
+    <span style="font-size:11px;color:#888;margin-left:4px">→ revierte stock si estaba confirmado</span>
+  </div>
+</div>
+
+<!-- MÓDULOS -->
+<div class="modulos">
+  <h2>Módulos del sistema y tablas involucradas</h2>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Autenticación y Roles</span>
+    <span class="modulo-tablas">
+      <span class="tag">USUARIOS</span><span class="tag">ROLES</span><span class="tag">REFRESH_TOKENS</span>
+    </span>
+  </div>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Gestión de Pedidos</span>
+    <span class="modulo-tablas">
+      <span class="tag">CLIENTES</span><span class="tag">PEDIDOS</span><span class="tag">PEDIDO_ITEMS</span><span class="tag">PEDIDO_ESTADOS</span>
+    </span>
+  </div>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Catálogo de Productos</span>
+    <span class="modulo-tablas">
+      <span class="tag">CATEGORIAS</span><span class="tag">PRODUCTOS</span><span class="tag">PRODUCTO_UNIDADES</span>
+    </span>
+  </div>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Inventario <span class="new-badge">NUEVO</span></span>
+    <span class="modulo-tablas">
+      <span class="tag new">INVENTARIO</span><span class="tag new">INVENTARIO_MOVIMIENTOS</span><span class="tag">PRODUCTO_UNIDADES</span><span class="tag">PEDIDOS</span>
+    </span>
+  </div>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Notas de Venta</span>
+    <span class="modulo-tablas">
+      <span class="tag">NOTAS_VENTA</span><span class="tag">PEDIDOS</span><span class="tag">PEDIDO_ITEMS</span><span class="tag">CLIENTES</span>
+    </span>
+  </div>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Panel Administrativo</span>
+    <span class="modulo-tablas">
+      <span class="tag">PEDIDOS</span><span class="tag">CLIENTES</span><span class="tag">PEDIDO_ESTADOS</span><span class="tag">NOTAS_VENTA</span><span class="tag new">INVENTARIO</span>
+    </span>
+  </div>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Reportes y Estadísticas</span>
+    <span class="modulo-tablas">
+      <span class="tag">PEDIDOS</span><span class="tag">PEDIDO_ITEMS</span><span class="tag">CLIENTES</span><span class="tag">NOTAS_VENTA</span><span class="tag new">INVENTARIO_MOVIMIENTOS</span>
+    </span>
+  </div>
+  <div class="modulo-row">
+    <span class="modulo-nombre">Auditoría y Config</span>
+    <span class="modulo-tablas">
+      <span class="tag">AUDITORIA</span><span class="tag">CONFIG</span>
+    </span>
+  </div>
+</div>
+
+<!-- INSTRUCCIONES CLAUDE CODE -->
+<div class="claude-code-box">
+  <h2>📋 Instrucciones para Claude Code</h2>
+  <span class="comment"># 1. Colocar este archivo en la raíz del proyecto:</span><br>
+  <span class="path">/punto-abasto-api/docs/DER_PuntoAbasto_v2.html</span><br><br>
+  <span class="comment"># 2. Prompt sugerido para iniciar con Claude Code:</span><br><br>
+  <span class="cmd">"Tengo el DER del sistema de ventas en docs/DER_PuntoAbasto_v2.html.</span><br>
+  <span class="cmd">Necesito que generes:</span><br>
+  <span class="cmd">1. El script SQL completo (schema.sql) en PostgreSQL con:</span><br>
+  <span class="cmd">   - CREATE TABLE en orden correcto respetando FK</span><br>
+  <span class="cmd">   - Tipos uuid, varchar, decimal, jsonb, boolean, timestamp with time zone</span><br>
+  <span class="cmd">   - Constraints: PK, FK, UK, CHECK para estados/roles/tipos</span><br>
+  <span class="cmd">   - Índices en campos frecuentemente consultados</span><br>
+  <span class="cmd">   - Trigger para alerta_activa en INVENTARIO</span><br>
+  <span class="cmd">   - Trigger para descontar stock al confirmar pedido</span><br>
+  <span class="cmd">2. Un seed.sql con datos de prueba realistas para Punto Abasto</span><br>
+  <span class="cmd">   (categorías, productos con sus unidades e inventario inicial)</span><br>
+  <span class="cmd">3. La estructura de carpetas del proyecto .NET 8 Web API"</span><br><br>
+  <span class="comment"># Stack: .NET 8 · Entity Framework Core · PostgreSQL · Railway.app</span>
+</div>
+
+<!-- DER mermaid -->
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: 'Arial, sans-serif',
+  themeVariables: {
+    darkMode: false,
+    fontSize: '12px',
+    fontFamily: 'Arial, sans-serif',
+    lineColor: '#73726c',
+    textColor: '#3d3d3a',
+    primaryColor: '#E6F1FB',
+    primaryBorderColor: '#185FA5',
+    primaryTextColor: '#042C53',
+    secondaryColor: '#EAF3DE',
+    tertiaryColor: '#FAEEDA',
+  },
+});
+
+const diagram = `erDiagram
+
+  USUARIOS {
+    uuid id PK
+    varchar nombre
+    varchar email UK
+    varchar password_hash
+    varchar rol
+    boolean activo
+    timestamp ultimo_login
+    timestamp created_at
+  }
+
+  ROLES {
+    int id PK
+    varchar nombre UK
+    text descripcion
+  }
+
+  REFRESH_TOKENS {
+    uuid id PK
+    uuid usuario_id FK
+    text token UK
+    timestamp expires_at
+    boolean revocado
+    timestamp created_at
+  }
+
+  CLIENTES {
+    uuid id PK
+    varchar nombre
+    varchar telefono UK
+    text direccion
+    varchar email
+    int total_pedidos
+    decimal total_gastado
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PEDIDOS {
+    uuid id PK
+    varchar numero UK
+    uuid cliente_id FK
+    uuid usuario_id FK
+    varchar estado
+    varchar origen
+    decimal subtotal
+    decimal descuento
+    decimal total
+    text notas
+    timestamp fecha_pedido
+    timestamp fecha_entrega_est
+    timestamp fecha_entrega_real
+    timestamp created_at
+  }
+
+  PEDIDO_ITEMS {
+    uuid id PK
+    uuid pedido_id FK
+    uuid producto_unidad_id FK
+    varchar producto_nombre
+    varchar unidad_label
+    decimal precio_unit
+    decimal cantidad
+    decimal subtotal
+  }
+
+  PEDIDO_ESTADOS {
+    uuid id PK
+    uuid pedido_id FK
+    uuid usuario_id FK
+    varchar estado_anterior
+    varchar estado_nuevo
+    text observacion
+    timestamp created_at
+  }
+
+  CATEGORIAS {
+    int id PK
+    varchar nombre UK
+    varchar slug UK
+    varchar emoji
+    int orden
+  }
+
+  PRODUCTOS {
+    uuid id PK
+    int categoria_id FK
+    varchar nombre
+    text descripcion
+    varchar emoji
+    varchar imagen_url
+    varchar badge
+    boolean activo
+    boolean disponible
+    int orden
+    timestamp created_at
+    timestamp updated_at
+  }
+
+  PRODUCTO_UNIDADES {
+    uuid id PK
+    uuid producto_id FK
+    varchar label
+    decimal precio
+    boolean es_default
+    int orden
+  }
+
+  INVENTARIO {
+    uuid id PK
+    uuid producto_unidad_id FK
+    decimal stock_actual
+    decimal stock_minimo
+    decimal stock_maximo
+    varchar unidad_medida
+    boolean alerta_activa
+    timestamp updated_at
+  }
+
+  INVENTARIO_MOVIMIENTOS {
+    uuid id PK
+    uuid inventario_id FK
+    uuid pedido_id FK
+    uuid usuario_id FK
+    varchar tipo
+    decimal cantidad
+    decimal stock_anterior
+    decimal stock_nuevo
+    text motivo
+    timestamp created_at
+  }
+
+  NOTAS_VENTA {
+    uuid id PK
+    varchar numero UK
+    uuid pedido_id FK
+    uuid usuario_id FK
+    decimal subtotal
+    decimal descuento
+    decimal total
+    varchar estado
+    text observaciones
+    timestamp fecha_emision
+    timestamp created_at
+  }
+
+  AUDITORIA {
+    uuid id PK
+    uuid usuario_id FK
+    varchar tabla
+    varchar operacion
+    uuid registro_id
+    jsonb datos_anteriores
+    jsonb datos_nuevos
+    varchar ip
+    timestamp created_at
+  }
+
+  CONFIG {
+    int id PK
+    varchar clave UK
+    text valor
+    text descripcion
+    timestamp updated_at
+  }
+
+  USUARIOS }o--|| ROLES : "tiene"
+  REFRESH_TOKENS }o--|| USUARIOS : "pertenece a"
+  AUDITORIA }o--o| USUARIOS : "registrada por"
+
+  PEDIDOS }o--|| CLIENTES : "realiza"
+  PEDIDOS }o--o| USUARIOS : "gestionado por"
+  PEDIDO_ITEMS }o--|| PEDIDOS : "pertenece a"
+  PEDIDO_ITEMS }o--|| PRODUCTO_UNIDADES : "referencia"
+  PEDIDO_ESTADOS }o--|| PEDIDOS : "historial de"
+  PEDIDO_ESTADOS }o--|| USUARIOS : "registrado por"
+
+  PRODUCTOS }o--|| CATEGORIAS : "pertenece a"
+  PRODUCTO_UNIDADES }o--|| PRODUCTOS : "opciones de"
+
+  INVENTARIO ||--|| PRODUCTO_UNIDADES : "stock de"
+  INVENTARIO_MOVIMIENTOS }o--|| INVENTARIO : "movimiento en"
+  INVENTARIO_MOVIMIENTOS }o--o| PEDIDOS : "origen pedido"
+  INVENTARIO_MOVIMIENTOS }o--|| USUARIOS : "registrado por"
+
+  NOTAS_VENTA ||--|| PEDIDOS : "generada desde"
+  NOTAS_VENTA }o--|| USUARIOS : "emitida por"
+`;
+
+const { svg } = await mermaid.render('erd-svg', diagram);
+document.getElementById('erd').innerHTML = svg;
+
+document.querySelectorAll('#erd svg .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0],nums[2],nums[4],nums[6]];
+  const ys = [nums[1],nums[3],nums[5],nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs)-x, h = Math.max(...ys)-y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('x',x); rect.setAttribute('y',y);
+  rect.setAttribute('width',w); rect.setAttribute('height',h);
+  rect.setAttribute('rx','8');
+  for (const a of ['fill','stroke','stroke-width','class','style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a,firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+document.querySelectorAll('#erd svg .row-rect-odd path, #erd svg .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke','none');
+});
+</script>
+</body>
+</html>

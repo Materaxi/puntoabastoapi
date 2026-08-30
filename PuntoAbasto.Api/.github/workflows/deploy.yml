@@ -1,0 +1,59 @@
+name: Deploy API a Railway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "PuntoAbasto.Api/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: PuntoAbasto.Api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restaurar dependencias
+        run: dotnet restore
+
+      - name: Compilar (Release)
+        run: dotnet build --configuration Release --no-restore
+
+      # Se activa automáticamente en cuanto exista un *.Tests.csproj en el repo.
+      - name: Ejecutar tests
+        run: |
+          if ls **/*.Tests.csproj 1> /dev/null 2>&1; then
+            dotnet test --configuration Release --no-build --verbosity normal
+          else
+            echo "No hay proyectos de test todavía, se omite este paso."
+          fi
+        shell: bash
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    defaults:
+      run:
+        working-directory: PuntoAbasto.Api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy a Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service PuntoAbasto.Api --detach
