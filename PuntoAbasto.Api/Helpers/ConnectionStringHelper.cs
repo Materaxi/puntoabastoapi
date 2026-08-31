@@ -32,7 +32,16 @@ public static class ConnectionStringHelper
             Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
             Database = uri.AbsolutePath.TrimStart('/'),
             SslMode = SslMode.Require,
-            Pooling = true
+            Pooling = true,
+            // Requerido para que Npgsql funcione en serio detrás de PgBouncer en modo
+            // "transaction" (el pooler de producción, puerto 6543): sin esto, cualquier
+            // query con más de un round-trip (ej. un JOIN/Include combinado con un
+            // parámetro de lista vía Contains) se cuelga esperando una respuesta que
+            // nunca llega, porque el auto-prepare de Npgsql asume una sesión estable
+            // con el mismo backend de Postgres, cosa que el pooler no garantiza.
+            // Confirmado reproduciendo el colgado y el fix con un diagnóstico aislado.
+            MaxAutoPrepare = 0,
+            NoResetOnClose = true
         };
 
         return builder.ConnectionString;
