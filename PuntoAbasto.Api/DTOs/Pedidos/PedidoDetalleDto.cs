@@ -10,6 +10,8 @@ public record PedidoDetalleDto(
     decimal Subtotal,
     decimal Descuento,
     decimal Total,
+    bool Pagado,
+    DateTimeOffset? FechaPago,
     string? Notas,
     DateTimeOffset FechaPedido,
     DateTimeOffset? FechaEntregaEst,

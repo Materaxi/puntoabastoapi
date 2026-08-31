@@ -36,6 +36,11 @@ public class PedidoRepository : IPedidoRepository
             query = query.Where(p => p.ClienteId == filtro.ClienteId);
         }
 
+        if (filtro.Pagado is not null)
+        {
+            query = query.Where(p => p.Pagado == filtro.Pagado);
+        }
+
         if (filtro.Desde is not null)
         {
             query = query.Where(p => p.FechaPedido >= filtro.Desde);

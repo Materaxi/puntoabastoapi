@@ -8,4 +8,5 @@ public record PedidoListItemDto(
     string Estado,
     string Origen,
     decimal Total,
+    bool Pagado,
     DateTimeOffset FechaPedido);

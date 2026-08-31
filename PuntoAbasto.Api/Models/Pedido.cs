@@ -21,6 +21,12 @@ public class Pedido
     public decimal Subtotal { get; set; }
     public decimal Descuento { get; set; }
     public decimal Total { get; set; }
+
+    /// <summary>Independiente de Estado: la entrega y el pago son hechos distintos
+    /// (se puede entregar y cobrar días después). No participa de PedidoEstadoTransiciones.</summary>
+    public bool Pagado { get; set; }
+    public DateTimeOffset? FechaPago { get; set; }
+
     public string? Notas { get; set; }
     public DateTimeOffset FechaPedido { get; set; }
     public DateTimeOffset? FechaEntregaEst { get; set; }

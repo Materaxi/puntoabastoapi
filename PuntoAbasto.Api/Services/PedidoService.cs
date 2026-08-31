@@ -128,7 +128,7 @@ public class PedidoService : IPedidoService
     }
 
     public async Task<PagedResultDto<PedidoListItemDto>> BuscarAsync(
-        string? estado, Guid? clienteId, DateTimeOffset? desde, DateTimeOffset? hasta,
+        string? estado, Guid? clienteId, bool? pagado, DateTimeOffset? desde, DateTimeOffset? hasta,
         int page, int pageSize, CancellationToken ct)
     {
         if (!string.IsNullOrWhiteSpace(estado) && !PedidoEstadoTransiciones.EstadosValidos.Contains(estado))
@@ -139,11 +139,63 @@ public class PedidoService : IPedidoService
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > PageSizeMaximo ? 20 : pageSize;
 
-        var filtro = new PedidoFiltro(estado, clienteId, desde, hasta, page, pageSize);
+        var filtro = new PedidoFiltro(estado, clienteId, pagado, desde, hasta, page, pageSize);
         var (pedidos, totalCount) = await _pedidoRepository.BuscarAsync(filtro, ct);
 
         var items = pedidos.Select(MapToListItemDto).ToList();
         return new PagedResultDto<PedidoListItemDto>(items, page, pageSize, totalCount);
+    }
+
+    public async Task<PedidoDetalleDto> ActualizarPagoAsync(Guid id, bool pagado, CancellationToken ct)
+    {
+        var pedido = await _pedidoRepository.ObtenerPorIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"No existe el pedido {id}.");
+
+        pedido.Pagado = pagado;
+        pedido.FechaPago = pagado ? DateTimeOffset.UtcNow : null;
+
+        await _db.SaveChangesAsync(ct);
+
+        return MapToDetalleDto(pedido);
+    }
+
+    public async Task<PedidoDetalleDto> ActualizarPrecioItemAsync(Guid pedidoId, Guid itemId, decimal nuevoPrecio, CancellationToken ct)
+    {
+        var pedido = await _pedidoRepository.ObtenerPorIdAsync(pedidoId, ct)
+            ?? throw new KeyNotFoundException($"No existe el pedido {pedidoId}.");
+
+        if (pedido.Estado == "cancelado")
+        {
+            throw new InvalidOperationException("No se puede editar el precio de un pedido cancelado.");
+        }
+
+        var item = pedido.Items.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new KeyNotFoundException($"El pedido {pedido.Numero} no tiene el ítem {itemId}.");
+
+        var totalAnterior = pedido.Total;
+
+        item.PrecioUnit = nuevoPrecio;
+        item.Subtotal = nuevoPrecio * item.Cantidad;
+
+        pedido.Subtotal = pedido.Items.Sum(i => i.Subtotal);
+        if (pedido.Descuento > pedido.Subtotal)
+        {
+            throw new ArgumentException(
+                $"El nuevo precio deja el descuento (Bs {pedido.Descuento}) por encima del subtotal (Bs {pedido.Subtotal}). Ajustá el descuento primero.");
+        }
+        pedido.Total = pedido.Subtotal - pedido.Descuento;
+
+        // trg_actualizar_totales_cliente ya sumó el total original al entregar;
+        // si el precio cambia después, hay que corregir cliente.total_gastado
+        // por la diferencia para que no quede desincronizado.
+        if (pedido.Estado == "entregado" && pedido.Cliente is not null)
+        {
+            pedido.Cliente.TotalGastado += pedido.Total - totalAnterior;
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        return MapToDetalleDto(pedido);
     }
 
     public async Task<PedidoDetalleDto> CambiarEstadoAsync(
@@ -207,6 +259,7 @@ public class PedidoService : IPedidoService
         pedido.Estado,
         pedido.Origen,
         pedido.Total,
+        pedido.Pagado,
         pedido.FechaPedido);
 
     private static PedidoDetalleDto MapToDetalleDto(Pedido pedido) => new(
@@ -224,6 +277,8 @@ public class PedidoService : IPedidoService
         pedido.Subtotal,
         pedido.Descuento,
         pedido.Total,
+        pedido.Pagado,
+        pedido.FechaPago,
         pedido.Notas,
         pedido.FechaPedido,
         pedido.FechaEntregaEst,

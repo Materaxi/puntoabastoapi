@@ -158,6 +158,11 @@ CREATE TABLE public.pedidos (
     subtotal            decimal(10, 2) NOT NULL CHECK (subtotal >= 0),
     descuento           decimal(10, 2) NOT NULL DEFAULT 0 CHECK (descuento >= 0),
     total               decimal(10, 2) NOT NULL CHECK (total >= 0),
+    -- Independiente de "estado": la entrega y el pago son hechos distintos
+    -- (se puede entregar y cobrar días después). No participa de la máquina
+    -- de estados en PedidoEstadoTransiciones.
+    pagado              boolean NOT NULL DEFAULT false,
+    fecha_pago          timestamptz,
     notas               text,
     fecha_pedido        timestamptz NOT NULL DEFAULT now(),
     fecha_entrega_est   timestamptz,
@@ -169,6 +174,7 @@ CREATE INDEX ix_pedidos_cliente_id ON public.pedidos (cliente_id);
 CREATE INDEX ix_pedidos_usuario_id ON public.pedidos (usuario_id);
 CREATE INDEX ix_pedidos_estado ON public.pedidos (estado);
 CREATE INDEX ix_pedidos_fecha_pedido ON public.pedidos (fecha_pedido DESC);
+CREATE INDEX ix_pedidos_pagado ON public.pedidos (pagado);
 
 -- ────────────────────────────────────────────────────────────────
 -- 7. PEDIDO_ITEMS (snapshot inmutable de nombre/unidad/precio)

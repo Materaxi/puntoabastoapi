@@ -40,13 +40,14 @@ public class PedidosController : ControllerBase
     public async Task<ActionResult<PagedResultDto<PedidoListItemDto>>> Buscar(
         [FromQuery] string? estado,
         [FromQuery] Guid? clienteId,
+        [FromQuery] bool? pagado,
         [FromQuery] DateTimeOffset? desde,
         [FromQuery] DateTimeOffset? hasta,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var resultado = await _pedidoService.BuscarAsync(estado, clienteId, desde, hasta, page, pageSize, ct);
+        var resultado = await _pedidoService.BuscarAsync(estado, clienteId, pagado, desde, hasta, page, pageSize, ct);
         return Ok(resultado);
     }
 
@@ -75,6 +76,32 @@ public class PedidosController : ControllerBase
         Guid id, [FromBody] CambiarEstadoPedidoRequestDto request, CancellationToken ct)
     {
         var pedido = await _pedidoService.CambiarEstadoAsync(id, request.Estado, request.Observacion, User, ct);
+        return Ok(pedido);
+    }
+
+    /// <summary>Marca/desmarca el pago. Independiente del estado de entrega:
+    /// un pedido puede estar "entregado" y sin pagar todavía.</summary>
+    [HttpPatch("{id:guid}/pago")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(PedidoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PedidoDetalleDto>> ActualizarPago(
+        Guid id, [FromBody] ActualizarPagoRequestDto request, CancellationToken ct)
+    {
+        var pedido = await _pedidoService.ActualizarPagoAsync(id, request.Pagado, ct);
+        return Ok(pedido);
+    }
+
+    /// <summary>Corrige el precio de un ítem (cliente con precio diferenciado).</summary>
+    [HttpPatch("{id:guid}/items/{itemId:guid}/precio")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(PedidoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PedidoDetalleDto>> ActualizarPrecioItem(
+        Guid id, Guid itemId, [FromBody] ActualizarPrecioItemRequestDto request, CancellationToken ct)
+    {
+        var pedido = await _pedidoService.ActualizarPrecioItemAsync(id, itemId, request.PrecioUnit, ct);
         return Ok(pedido);
     }
 }
