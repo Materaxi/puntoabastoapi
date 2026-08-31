@@ -60,6 +60,11 @@ public class ProductoRepository : IProductoRepository
             query = query.Where(p => p.Activo == filtro.Activo);
         }
 
+        if (filtro.StockBajo == true)
+        {
+            query = query.Where(p => p.Unidades.Any(u => u.Inventario != null && u.Inventario.AlertaActiva));
+        }
+
         if (!string.IsNullOrWhiteSpace(filtro.Busqueda))
         {
             query = query.Where(p => EF.Functions.ILike(p.Nombre, $"%{filtro.Busqueda}%"));

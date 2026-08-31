@@ -34,12 +34,12 @@ public class ProductoService : IProductoService
     }
 
     public async Task<PagedResultDto<ProductoInternoDto>> BuscarAsync(
-        int? categoriaId, bool? activo, string? busqueda, int page, int pageSize, CancellationToken ct)
+        int? categoriaId, bool? activo, bool? stockBajo, string? busqueda, int page, int pageSize, CancellationToken ct)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > PageSizeMaximo ? 20 : pageSize;
 
-        var filtro = new ProductoFiltro(categoriaId, activo, busqueda, page, pageSize);
+        var filtro = new ProductoFiltro(categoriaId, activo, stockBajo, busqueda, page, pageSize);
         var (productos, totalCount) = await _productoRepository.BuscarAsync(filtro, ct);
 
         return new PagedResultDto<ProductoInternoDto>(productos.Select(MapToInternoDto).ToList(), page, pageSize, totalCount);

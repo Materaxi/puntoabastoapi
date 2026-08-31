@@ -48,12 +48,13 @@ public class ProductosController : ControllerBase
     public async Task<ActionResult<PagedResultDto<ProductoInternoDto>>> Buscar(
         [FromQuery] int? categoriaId,
         [FromQuery] bool? activo,
+        [FromQuery] bool? stockBajo,
         [FromQuery] string? q,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var resultado = await _productoService.BuscarAsync(categoriaId, activo, q, page, pageSize, ct);
+        var resultado = await _productoService.BuscarAsync(categoriaId, activo, stockBajo, q, page, pageSize, ct);
         return Ok(resultado);
     }
 

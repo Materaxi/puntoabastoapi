@@ -9,7 +9,7 @@ public interface IProductoService
     Task<ProductoPublicoDto> ObtenerPublicoPorIdAsync(Guid id, CancellationToken ct);
 
     Task<PagedResultDto<ProductoInternoDto>> BuscarAsync(
-        int? categoriaId, bool? activo, string? busqueda, int page, int pageSize, CancellationToken ct);
+        int? categoriaId, bool? activo, bool? stockBajo, string? busqueda, int page, int pageSize, CancellationToken ct);
     Task<ProductoInternoDto> ObtenerInternoPorIdAsync(Guid id, CancellationToken ct);
     Task<ProductoInternoDto> CrearAsync(CrearProductoRequestDto request, CancellationToken ct);
     Task<ProductoInternoDto> ActualizarAsync(Guid id, ActualizarProductoRequestDto request, CancellationToken ct);
