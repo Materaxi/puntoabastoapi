@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PuntoAbasto.Api.DTOs.Common;
 using PuntoAbasto.Api.DTOs.Pedidos;
 using PuntoAbasto.Api.Services;
@@ -25,6 +26,7 @@ public class PedidosController : ControllerBase
     /// </summary>
     [HttpPost]
     [AllowAnonymous]
+    [EnableRateLimiting("pedidos")]
     [ProducesResponseType(typeof(PedidoDetalleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PedidoDetalleDto>> Crear([FromBody] CrearPedidoRequestDto request, CancellationToken ct)

@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Tokens;
@@ -12,6 +15,7 @@ using PuntoAbasto.Api.Options;
 using PuntoAbasto.Api.Repositories;
 using PuntoAbasto.Api.Services;
 using Serilog;
+using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -61,6 +65,72 @@ try
 
     // ── Controllers ──────────────────────────────────────────────────
     builder.Services.AddControllers();
+
+    // ── IP real del cliente detrás del proxy de Railway ─────────────
+    // Railway (como cualquier PaaS) manda la IP real en X-Forwarded-For;
+    // sin esto, HttpContext.Connection.RemoteIpAddress siempre da la IP
+    // interna del proxy y el rate limiting por IP no serviría de nada.
+    // Se limpian KnownProxies/KnownNetworks porque la IP del proxy de
+    // Railway no es fija ni enumerable (patrón estándar para PaaS).
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+
+    // ── Rate limiting: frena abuso del endpoint público de crear pedidos ──
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        // Límite global de respaldo, por IP, para toda la API.
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "sin-ip",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 120,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0
+                }));
+
+        // Límite estricto específico para POST /api/pedidos: un cliente real
+        // (carrito público, sin login) no crea más de un par de pedidos en
+        // 10 minutos. El personal interno logueado queda exento — el mismo
+        // endpoint lo usa el panel para cargar pedidos recibidos por
+        // WhatsApp/teléfono, y ahí el JWT ya identifica que no es abuso.
+        options.AddPolicy("pedidos", context =>
+        {
+            if (context.User.Identity?.IsAuthenticated == true)
+            {
+                return RateLimitPartition.GetNoLimiter("staff");
+            }
+
+            return RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "sin-ip",
+                factory: _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 5,
+                    Window = TimeSpan.FromMinutes(10),
+                    QueueLimit = 0
+                });
+        });
+
+        options.OnRejected = async (context, ct) =>
+        {
+            context.HttpContext.Response.ContentType = "application/problem+json";
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status429TooManyRequests,
+                Title = "Demasiadas solicitudes",
+                Detail = "Se hicieron demasiadas solicitudes en poco tiempo. Esperá unos minutos e intentá de nuevo.",
+                Type = "https://httpstatuses.com/429",
+                Instance = context.HttpContext.Request.Path
+            };
+            await context.HttpContext.Response.WriteAsJsonAsync(problem, ct);
+        };
+    });
 
     // ── CORS ─────────────────────────────────────────────────────────
     // FrontendUrl = tienda pública (punto-abasto, puerto 5173 en dev).
@@ -221,6 +291,8 @@ try
 
     var app = builder.Build();
 
+    app.UseForwardedHeaders();
+
     app.UseSerilogRequestLogging();
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -235,6 +307,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
 
     app.MapControllers();
 
