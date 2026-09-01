@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PuntoAbasto.Api.Data;
+using PuntoAbasto.Api.DTOs.Common;
 using PuntoAbasto.Api.DTOs.Pedidos;
 using PuntoAbasto.Api.DTOs.Reportes;
 using PuntoAbasto.Api.Helpers;
@@ -157,6 +158,51 @@ public class ReporteService : IReporteService
             .ToList();
 
         return new MovimientosResumenDto(desdeFecha, hastaFecha, totalEntradas, totalSalidas, totalAjustesManuales, totalReversiones, topMermas);
+    }
+
+    /// <summary>Historial detallado de movimientos (quién, qué, cuánto), paginado — para auditoría.</summary>
+    public async Task<PagedResultDto<MovimientoHistorialDto>> ObtenerHistorialMovimientosAsync(
+        DateOnly? desde, DateOnly? hasta, string? tipo, string? q, int page, int pageSize, CancellationToken ct)
+    {
+        var (desdeUtc, hastaUtc, _, _) = ResolverRango(desde, hasta);
+        page = page < 1 ? 1 : page;
+        pageSize = pageSize is < 1 or > 100 ? 20 : pageSize;
+
+        var query = _db.InventarioMovimientos
+            .Where(m => m.CreatedAt >= desdeUtc && m.CreatedAt <= hastaUtc);
+
+        if (!string.IsNullOrWhiteSpace(tipo))
+        {
+            var tipoNormalizado = tipo.Trim().ToLowerInvariant();
+            query = query.Where(m => m.Tipo == tipoNormalizado);
+        }
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var patron = $"%{q.Trim()}%";
+            query = query.Where(m => EF.Functions.ILike(m.Inventario!.ProductoUnidad!.Producto!.Nombre, patron));
+        }
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(m => m.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(m => new MovimientoHistorialDto(
+                m.Id,
+                m.Inventario!.ProductoUnidad!.Producto!.Nombre,
+                m.Inventario.ProductoUnidad.Label,
+                m.Tipo,
+                m.Cantidad,
+                m.StockAnterior,
+                m.StockNuevo,
+                m.Motivo,
+                m.Usuario != null ? m.Usuario.Nombre : null,
+                m.CreatedAt))
+            .ToListAsync(ct);
+
+        return new PagedResultDto<MovimientoHistorialDto>(items, page, pageSize, totalCount);
     }
 
     public async Task<IReadOnlyList<PedidoListItemDto>> ObtenerPedidosSinNotaVentaAsync(CancellationToken ct)

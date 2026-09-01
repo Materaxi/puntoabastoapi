@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PuntoAbasto.Api.DTOs.Common;
 using PuntoAbasto.Api.DTOs.Pedidos;
 using PuntoAbasto.Api.DTOs.Reportes;
 using PuntoAbasto.Api.Services;
@@ -72,6 +73,18 @@ public class ReportesController : ControllerBase
         [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken ct)
     {
         var reporte = await _reporteService.ObtenerMovimientosInventarioAsync(desde, hasta, ct);
+        return Ok(reporte);
+    }
+
+    /// <summary>Historial detallado de movimientos (quién, qué, cuánto), paginado y filtrable — para auditoría.</summary>
+    [HttpGet("inventario-movimientos-historial")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(PagedResultDto<MovimientoHistorialDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResultDto<MovimientoHistorialDto>>> HistorialMovimientosInventario(
+        [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, [FromQuery] string? tipo, [FromQuery] string? q,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    {
+        var reporte = await _reporteService.ObtenerHistorialMovimientosAsync(desde, hasta, tipo, q, page, pageSize, ct);
         return Ok(reporte);
     }
 
