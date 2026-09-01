@@ -22,4 +22,7 @@ public class PedidoItem
     public Pedido? Pedido { get; set; }
 
     public ProductoUnidad? ProductoUnidad { get; set; }
+
+    [JsonIgnore]
+    public ICollection<PedidoItemPrecioHistorial> HistorialPrecios { get; set; } = new List<PedidoItemPrecioHistorial>();
 }

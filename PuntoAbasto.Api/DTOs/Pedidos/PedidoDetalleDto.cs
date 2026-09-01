@@ -17,4 +17,5 @@ public record PedidoDetalleDto(
     DateTimeOffset? FechaEntregaEst,
     DateTimeOffset? FechaEntregaReal,
     IReadOnlyList<PedidoItemDto> Items,
-    IReadOnlyList<PedidoEstadoHistorialDto> HistorialEstados);
+    IReadOnlyList<PedidoEstadoHistorialDto> HistorialEstados,
+    IReadOnlyList<PedidoPagoHistorialDto> HistorialPago);

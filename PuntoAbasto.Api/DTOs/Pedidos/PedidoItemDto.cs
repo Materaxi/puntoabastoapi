@@ -7,4 +7,5 @@ public record PedidoItemDto(
     string UnidadLabel,
     decimal PrecioUnit,
     decimal Cantidad,
-    decimal Subtotal);
+    decimal Subtotal,
+    IReadOnlyList<PedidoItemPrecioHistorialDto> HistorialPrecios);

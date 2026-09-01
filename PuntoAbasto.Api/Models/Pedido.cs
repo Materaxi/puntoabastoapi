@@ -42,6 +42,9 @@ public class Pedido
     public ICollection<PedidoEstado> HistorialEstados { get; set; } = new List<PedidoEstado>();
 
     [JsonIgnore]
+    public ICollection<PedidoPagoHistorial> HistorialPago { get; set; } = new List<PedidoPagoHistorial>();
+
+    [JsonIgnore]
     public ICollection<InventarioMovimiento> InventarioMovimientos { get; set; } = new List<InventarioMovimiento>();
 
     [JsonIgnore]

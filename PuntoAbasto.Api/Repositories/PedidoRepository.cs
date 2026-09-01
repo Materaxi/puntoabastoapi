@@ -18,7 +18,11 @@ public class PedidoRepository : IPedidoRepository
             .Include(p => p.Cliente)
             .Include(p => p.Usuario)
             .Include(p => p.Items)
+                .ThenInclude(i => i.HistorialPrecios.OrderBy(h => h.CreatedAt))
+                    .ThenInclude(h => h.Usuario)
             .Include(p => p.HistorialEstados.OrderBy(h => h.CreatedAt))
+                .ThenInclude(h => h.Usuario)
+            .Include(p => p.HistorialPago.OrderBy(h => h.CreatedAt))
                 .ThenInclude(h => h.Usuario)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 

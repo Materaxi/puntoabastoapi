@@ -146,20 +146,30 @@ public class PedidoService : IPedidoService
         return new PagedResultDto<PedidoListItemDto>(items, page, pageSize, totalCount);
     }
 
-    public async Task<PedidoDetalleDto> ActualizarPagoAsync(Guid id, bool pagado, CancellationToken ct)
+    public async Task<PedidoDetalleDto> ActualizarPagoAsync(Guid id, bool pagado, ClaimsPrincipal usuario, CancellationToken ct)
     {
         var pedido = await _pedidoRepository.ObtenerPorIdAsync(id, ct)
             ?? throw new KeyNotFoundException($"No existe el pedido {id}.");
 
         pedido.Pagado = pagado;
         pedido.FechaPago = pagado ? DateTimeOffset.UtcNow : null;
+        pedido.HistorialPago.Add(new PedidoPagoHistorial
+        {
+            PedidoId = pedido.Id,
+            UsuarioId = usuario.GetUsuarioId(),
+            Pagado = pagado
+        });
 
         await _db.SaveChangesAsync(ct);
 
-        return MapToDetalleDto(pedido);
+        // Recargamos el pedido completo (no MapToDetalleDto directo) para que
+        // HistorialPago.Usuario venga poblado en la respuesta: la fila recién
+        // agregada solo tiene UsuarioId seteado, no la navegación cargada.
+        return await ObtenerPorIdAsync(id, ct);
     }
 
-    public async Task<PedidoDetalleDto> ActualizarPrecioItemAsync(Guid pedidoId, Guid itemId, decimal nuevoPrecio, CancellationToken ct)
+    public async Task<PedidoDetalleDto> ActualizarPrecioItemAsync(
+        Guid pedidoId, Guid itemId, decimal nuevoPrecio, ClaimsPrincipal usuario, CancellationToken ct)
     {
         var pedido = await _pedidoRepository.ObtenerPorIdAsync(pedidoId, ct)
             ?? throw new KeyNotFoundException($"No existe el pedido {pedidoId}.");
@@ -169,13 +179,27 @@ public class PedidoService : IPedidoService
             throw new InvalidOperationException("No se puede editar el precio de un pedido cancelado.");
         }
 
+        if (pedido.Pagado)
+        {
+            throw new InvalidOperationException(
+                "No se puede editar el precio de un pedido ya pagado. Desmarcá el pago primero si necesitás corregirlo.");
+        }
+
         var item = pedido.Items.FirstOrDefault(i => i.Id == itemId)
             ?? throw new KeyNotFoundException($"El pedido {pedido.Numero} no tiene el ítem {itemId}.");
 
         var totalAnterior = pedido.Total;
+        var precioAnterior = item.PrecioUnit;
 
         item.PrecioUnit = nuevoPrecio;
         item.Subtotal = nuevoPrecio * item.Cantidad;
+        item.HistorialPrecios.Add(new PedidoItemPrecioHistorial
+        {
+            PedidoItemId = item.Id,
+            UsuarioId = usuario.GetUsuarioId(),
+            PrecioAnterior = precioAnterior,
+            PrecioNuevo = nuevoPrecio
+        });
 
         pedido.Subtotal = pedido.Items.Sum(i => i.Subtotal);
         if (pedido.Descuento > pedido.Subtotal)
@@ -195,7 +219,9 @@ public class PedidoService : IPedidoService
 
         await _db.SaveChangesAsync(ct);
 
-        return MapToDetalleDto(pedido);
+        // Mismo motivo que en ActualizarPagoAsync: recargar para que
+        // HistorialPrecios.Usuario venga poblado en la respuesta.
+        return await ObtenerPorIdAsync(pedidoId, ct);
     }
 
     public async Task<PedidoDetalleDto> CambiarEstadoAsync(
@@ -284,7 +310,11 @@ public class PedidoService : IPedidoService
         pedido.FechaEntregaEst,
         pedido.FechaEntregaReal,
         pedido.Items.Select(i => new PedidoItemDto(
-            i.Id, i.ProductoUnidadId, i.ProductoNombre, i.UnidadLabel, i.PrecioUnit, i.Cantidad, i.Subtotal)).ToList(),
+            i.Id, i.ProductoUnidadId, i.ProductoNombre, i.UnidadLabel, i.PrecioUnit, i.Cantidad, i.Subtotal,
+            i.HistorialPrecios.Select(h => new PedidoItemPrecioHistorialDto(
+                h.PrecioAnterior, h.PrecioNuevo, h.Usuario?.Nombre, h.CreatedAt)).ToList())).ToList(),
         pedido.HistorialEstados.Select(h => new PedidoEstadoHistorialDto(
-            h.EstadoAnterior, h.EstadoNuevo, h.Observacion, h.Usuario?.Nombre, h.CreatedAt)).ToList());
+            h.EstadoAnterior, h.EstadoNuevo, h.Observacion, h.Usuario?.Nombre, h.CreatedAt)).ToList(),
+        pedido.HistorialPago.Select(h => new PedidoPagoHistorialDto(
+            h.Pagado, h.Usuario?.Nombre, h.CreatedAt)).ToList());
 }

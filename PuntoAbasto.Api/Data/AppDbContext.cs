@@ -19,7 +19,9 @@ public class AppDbContext : DbContext
     public DbSet<InventarioMovimiento> InventarioMovimientos => Set<InventarioMovimiento>();
     public DbSet<Pedido> Pedidos => Set<Pedido>();
     public DbSet<PedidoItem> PedidoItems => Set<PedidoItem>();
+    public DbSet<PedidoItemPrecioHistorial> PedidoItemPrecioHistorial => Set<PedidoItemPrecioHistorial>();
     public DbSet<PedidoEstado> PedidoEstados => Set<PedidoEstado>();
+    public DbSet<PedidoPagoHistorial> PedidoPagoHistorial => Set<PedidoPagoHistorial>();
     public DbSet<NotaVenta> NotasVenta => Set<NotaVenta>();
     public DbSet<Auditoria> Auditorias => Set<Auditoria>();
     public DbSet<Config> Configs => Set<Config>();
@@ -184,6 +186,24 @@ public class AppDbContext : DbContext
                   .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // ── PEDIDO_ITEM_PRECIO_HISTORIAL ─────────────────────────
+        modelBuilder.Entity<PedidoItemPrecioHistorial>(entity =>
+        {
+            entity.ToTable("pedido_item_precio_historial");
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.PedidoItem)
+                  .WithMany(i => i.HistorialPrecios)
+                  .HasForeignKey(e => e.PedidoItemId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Usuario)
+                  .WithMany(u => u.PedidoItemPrecioHistorial)
+                  .HasForeignKey(e => e.UsuarioId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
         // ── PEDIDO_ESTADOS ───────────────────────────────────────
         modelBuilder.Entity<PedidoEstado>(entity =>
         {
@@ -198,6 +218,24 @@ public class AppDbContext : DbContext
 
             entity.HasOne(e => e.Usuario)
                   .WithMany(u => u.PedidoEstados)
+                  .HasForeignKey(e => e.UsuarioId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── PEDIDO_PAGO_HISTORIAL ─────────────────────────────────
+        modelBuilder.Entity<PedidoPagoHistorial>(entity =>
+        {
+            entity.ToTable("pedido_pago_historial");
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.Pedido)
+                  .WithMany(p => p.HistorialPago)
+                  .HasForeignKey(e => e.PedidoId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Usuario)
+                  .WithMany(u => u.PedidoPagoHistorial)
                   .HasForeignKey(e => e.UsuarioId)
                   .OnDelete(DeleteBehavior.SetNull);
         });

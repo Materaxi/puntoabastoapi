@@ -28,6 +28,12 @@ public class Usuario
     public ICollection<PedidoEstado> PedidoEstados { get; set; } = new List<PedidoEstado>();
 
     [JsonIgnore]
+    public ICollection<PedidoItemPrecioHistorial> PedidoItemPrecioHistorial { get; set; } = new List<PedidoItemPrecioHistorial>();
+
+    [JsonIgnore]
+    public ICollection<PedidoPagoHistorial> PedidoPagoHistorial { get; set; } = new List<PedidoPagoHistorial>();
+
+    [JsonIgnore]
     public ICollection<InventarioMovimiento> InventarioMovimientos { get; set; } = new List<InventarioMovimiento>();
 
     [JsonIgnore]

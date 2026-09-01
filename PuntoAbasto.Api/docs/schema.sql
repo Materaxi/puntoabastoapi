@@ -194,7 +194,25 @@ CREATE INDEX ix_pedido_items_pedido_id ON public.pedido_items (pedido_id);
 CREATE INDEX ix_pedido_items_producto_unidad_id ON public.pedido_items (producto_unidad_id);
 
 -- ────────────────────────────────────────────────────────────────
--- 8. PEDIDO_ESTADOS (historial de transiciones)
+-- 8. PEDIDO_ITEM_PRECIO_HISTORIAL (quién corrigió un precio diferenciado)
+--    Snapshot inmutable, igual que PEDIDO_ESTADOS: no se actualiza ni se
+--    borra, solo se inserta una fila por cada corrección de precio_unit
+--    en PEDIDO_ITEMS (ver PATCH /api/pedidos/{id}/items/{itemId}/precio).
+--    usuario_id es nullable por la misma razón que en PEDIDO_ESTADOS.
+-- ────────────────────────────────────────────────────────────────
+CREATE TABLE public.pedido_item_precio_historial (
+    id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    pedido_item_id   uuid NOT NULL REFERENCES public.pedido_items (id) ON DELETE CASCADE,
+    usuario_id       uuid REFERENCES public.usuarios (id) ON DELETE SET NULL,
+    precio_anterior  decimal(10, 2) NOT NULL CHECK (precio_anterior >= 0),
+    precio_nuevo     decimal(10, 2) NOT NULL CHECK (precio_nuevo >= 0),
+    created_at       timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_pedido_item_precio_historial_pedido_item_id ON public.pedido_item_precio_historial (pedido_item_id);
+
+-- ────────────────────────────────────────────────────────────────
+-- 9. PEDIDO_ESTADOS (historial de transiciones)
 --    usuario_id es nullable: los triggers de negocio (confirmación,
 --    cancelación) pueden correr sin un usuario humano detrás (seed
 --    data, jobs internos), y se registran como acción del sistema.
@@ -212,7 +230,23 @@ CREATE TABLE public.pedido_estados (
 CREATE INDEX ix_pedido_estados_pedido_id ON public.pedido_estados (pedido_id);
 
 -- ────────────────────────────────────────────────────────────────
--- 9. INVENTARIO (por PRODUCTO_UNIDADES, no por PRODUCTOS)
+-- 10. PEDIDO_PAGO_HISTORIAL (quién marcó/desmarcó el pago)
+--     Snapshot inmutable, mismo patrón que PEDIDO_ESTADOS: una fila por
+--     cada toggle de PEDIDOS.pagado (ver PATCH /api/pedidos/{id}/pago).
+--     usuario_id es nullable por la misma razón que en PEDIDO_ESTADOS.
+-- ────────────────────────────────────────────────────────────────
+CREATE TABLE public.pedido_pago_historial (
+    id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    pedido_id   uuid NOT NULL REFERENCES public.pedidos (id) ON DELETE CASCADE,
+    usuario_id  uuid REFERENCES public.usuarios (id) ON DELETE SET NULL,
+    pagado      boolean NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_pedido_pago_historial_pedido_id ON public.pedido_pago_historial (pedido_id);
+
+-- ────────────────────────────────────────────────────────────────
+-- 11. INVENTARIO (por PRODUCTO_UNIDADES, no por PRODUCTOS)
 -- ────────────────────────────────────────────────────────────────
 CREATE TABLE public.inventario (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -228,7 +262,7 @@ CREATE TABLE public.inventario (
 CREATE INDEX ix_inventario_alerta_activa ON public.inventario (alerta_activa) WHERE alerta_activa = true;
 
 -- ────────────────────────────────────────────────────────────────
--- 10. INVENTARIO_MOVIMIENTOS
+-- 12. INVENTARIO_MOVIMIENTOS
 --     usuario_id es nullable por la misma razón que en PEDIDO_ESTADOS:
 --     un movimiento disparado automáticamente por un trigger (stock
 --     descontado al confirmar, revertido al cancelar) no siempre tiene
@@ -253,7 +287,7 @@ CREATE INDEX ix_inventario_movimientos_pedido_id ON public.inventario_movimiento
 CREATE INDEX ix_inventario_movimientos_created_at ON public.inventario_movimientos (created_at DESC);
 
 -- ────────────────────────────────────────────────────────────────
--- 11. NOTAS_VENTA
+-- 13. NOTAS_VENTA
 --     usuario_id es nullable por la misma razón que en PEDIDO_ESTADOS
 --     e INVENTARIO_MOVIMIENTOS: los usuarios viven en Supabase Auth,
 --     fuera del control de este script (ver seed.sql).
@@ -276,7 +310,7 @@ CREATE TABLE public.notas_venta (
 CREATE INDEX ix_notas_venta_estado ON public.notas_venta (estado);
 
 -- ────────────────────────────────────────────────────────────────
--- 12. AUDITORIA
+-- 14. AUDITORIA
 -- ────────────────────────────────────────────────────────────────
 CREATE TABLE public.auditoria (
     id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -295,7 +329,7 @@ CREATE INDEX ix_auditoria_tabla_registro ON public.auditoria (tabla, registro_id
 CREATE INDEX ix_auditoria_created_at ON public.auditoria (created_at DESC);
 
 -- ────────────────────────────────────────────────────────────────
--- 13. CONFIG
+-- 15. CONFIG
 -- ────────────────────────────────────────────────────────────────
 CREATE TABLE public.config (
     id           serial PRIMARY KEY,
@@ -550,6 +584,23 @@ ALTER TABLE public.inventario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventario_movimientos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 
+-- Resto de tablas del schema: sin política para anon/authenticated (nadie
+-- las consulta con esas credenciales hoy; el storefront y el admin pasan
+-- siempre por la API .NET con la Service Role Key). Alcanza con habilitar
+-- RLS y no definir políticas: eso deniega por defecto a anon/authenticated
+-- y la service role sigue teniendo acceso total porque bypassa RLS.
+ALTER TABLE public.clientes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.productos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.producto_unidades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pedido_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pedido_item_precio_historial ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pedido_estados ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pedido_pago_historial ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notas_venta ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.auditoria ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.config ENABLE ROW LEVEL SECURITY;
+
 -- PEDIDOS: cualquier usuario interno autenticado puede leer todos los
 -- pedidos (son empleados de la misma empresa); solo la service role
 -- puede insertar/actualizar (lo hace la API).
@@ -589,3 +640,28 @@ CREATE POLICY usuarios_all_service_role ON public.usuarios
   TO service_role
   USING (true)
   WITH CHECK (true);
+
+-- STORAGE: bucket "productos" para las imágenes de producto que se suben
+-- desde el panel admin (reemplaza el flujo anterior de pegar una URL a
+-- mano). Público de lectura (así imagenUrl sirve como URL directa para el
+-- storefront); solo un usuario autenticado (staff con cuenta en el panel)
+-- puede subir/reemplazar/borrar objetos de este bucket.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('productos', 'productos', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY productos_storage_insert_authenticated ON storage.objects
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'productos');
+
+CREATE POLICY productos_storage_update_authenticated ON storage.objects
+  FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'productos')
+  WITH CHECK (bucket_id = 'productos');
+
+CREATE POLICY productos_storage_delete_authenticated ON storage.objects
+  FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'productos');

@@ -139,6 +139,7 @@ public class NotaVentaService : INotaVentaService
             notaVenta.FechaEmision,
             notaVenta.CreatedAt,
             pedido.Items.Select(i => new PedidoItemDto(
-                i.Id, i.ProductoUnidadId, i.ProductoNombre, i.UnidadLabel, i.PrecioUnit, i.Cantidad, i.Subtotal)).ToList());
+                i.Id, i.ProductoUnidadId, i.ProductoNombre, i.UnidadLabel, i.PrecioUnit, i.Cantidad, i.Subtotal,
+                Array.Empty<PedidoItemPrecioHistorialDto>())).ToList());
     }
 }
