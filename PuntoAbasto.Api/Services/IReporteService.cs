@@ -26,4 +26,10 @@ public interface IReporteService
     /// de todos los pedidos en recibido/confirmado/preparando (los que todavía hay que
     /// comprar), sin importar la fecha del pedido.</summary>
     Task<ReporteComprasDto> ObtenerReporteComprasAsync(CancellationToken ct);
+
+    /// <summary>Costeo de utilidades: ventas (mismo criterio que ObtenerVentasAsync —
+    /// entregado con FechaEntregaReal en el rango) contra lo gastado en COMPRAS (por
+    /// CreatedAt) en el mismo rango, más el desglose pagado/no pagado y facturado/sin
+    /// factura. Solo Admin (ver ReportesController).</summary>
+    Task<CosteoReporteDto> ObtenerCosteoAsync(DateOnly? desde, DateOnly? hasta, CancellationToken ct);
 }

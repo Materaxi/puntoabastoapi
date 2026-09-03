@@ -108,4 +108,16 @@ public class ReportesController : ControllerBase
         var reporte = await _reporteService.ObtenerReporteComprasAsync(ct);
         return Ok(reporte);
     }
+
+    /// <summary>Costeo de utilidades: ventas vs. gasto en compras, más pagado/no pagado
+    /// y facturado/sin factura. Financiero — solo Admin.</summary>
+    [HttpGet("costeo")]
+    [Authorize(Policy = "Admin")]
+    [ProducesResponseType(typeof(CosteoReporteDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CosteoReporteDto>> Costeo(
+        [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken ct)
+    {
+        var reporte = await _reporteService.ObtenerCosteoAsync(desde, hasta, ct);
+        return Ok(reporte);
+    }
 }

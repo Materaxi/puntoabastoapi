@@ -21,4 +21,7 @@ public class ProductoUnidad
 
     [JsonIgnore]
     public ICollection<PedidoItem> PedidoItems { get; set; } = new List<PedidoItem>();
+
+    [JsonIgnore]
+    public ICollection<Compra> Compras { get; set; } = new List<Compra>();
 }

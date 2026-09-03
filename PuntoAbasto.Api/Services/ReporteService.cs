@@ -254,6 +254,35 @@ public class ReporteService : IReporteService
         return new ReporteComprasDto(items, pedidos);
     }
 
+    public async Task<CosteoReporteDto> ObtenerCosteoAsync(DateOnly? desde, DateOnly? hasta, CancellationToken ct)
+    {
+        var (desdeUtc, hastaUtc, desdeFecha, hastaFecha) = ResolverRango(desde, hasta);
+
+        var pedidos = await _db.Pedidos
+            .Where(p => p.Estado == "entregado" && p.FechaEntregaReal >= desdeUtc && p.FechaEntregaReal <= hastaUtc)
+            .Select(p => new { p.Total, p.Pagado, p.Facturado })
+            .ToListAsync(ct);
+
+        var totalVentas = pedidos.Sum(p => p.Total);
+        var totalPagado = pedidos.Where(p => p.Pagado).Sum(p => p.Total);
+        var totalNoPagado = pedidos.Where(p => !p.Pagado).Sum(p => p.Total);
+        var totalFacturado = pedidos.Where(p => p.Facturado).Sum(p => p.Total);
+        var totalSinFactura = pedidos.Where(p => !p.Facturado).Sum(p => p.Total);
+
+        var compras = await _db.Compras
+            .Where(c => c.CreatedAt >= desdeUtc && c.CreatedAt <= hastaUtc)
+            .Select(c => c.CostoTotal)
+            .ToListAsync(ct);
+
+        var totalGastoCompras = compras.Sum();
+
+        return new CosteoReporteDto(
+            desdeFecha, hastaFecha,
+            pedidos.Count, totalVentas, totalPagado, totalNoPagado, totalFacturado, totalSinFactura,
+            compras.Count, totalGastoCompras,
+            totalVentas - totalGastoCompras);
+    }
+
     private static (DateTimeOffset DesdeUtc, DateTimeOffset HastaUtc, DateOnly DesdeFecha, DateOnly HastaFecha) ResolverRango(
         DateOnly? desde, DateOnly? hasta)
     {

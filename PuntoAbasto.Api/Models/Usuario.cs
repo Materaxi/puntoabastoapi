@@ -13,7 +13,7 @@ public class Usuario
     public string Nombre { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
 
-    /// <summary>admin | vendedor | delivery</summary>
+    /// <summary>admin | vendedor | delivery | almacenero</summary>
     public string Rol { get; set; } = "vendedor";
 
     public bool Activo { get; set; } = true;
@@ -35,6 +35,9 @@ public class Usuario
 
     [JsonIgnore]
     public ICollection<InventarioMovimiento> InventarioMovimientos { get; set; } = new List<InventarioMovimiento>();
+
+    [JsonIgnore]
+    public ICollection<Compra> Compras { get; set; } = new List<Compra>();
 
     [JsonIgnore]
     public ICollection<NotaVenta> NotasVenta { get; set; } = new List<NotaVenta>();

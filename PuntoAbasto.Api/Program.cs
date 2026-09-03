@@ -232,6 +232,7 @@ try
     builder.Services.AddScoped<IProductoService, ProductoService>();
     builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
     builder.Services.AddScoped<IInventarioService, InventarioService>();
+    builder.Services.AddScoped<ICompraService, CompraService>();
 
     // ── Módulo Clientes ──────────────────────────────────────────────
     builder.Services.AddScoped<IClienteRepository, ClienteRepository>();

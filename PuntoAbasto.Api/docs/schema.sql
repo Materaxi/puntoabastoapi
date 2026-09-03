@@ -269,6 +269,31 @@ CREATE TABLE public.inventario (
 CREATE INDEX ix_inventario_alerta_activa ON public.inventario (alerta_activa) WHERE alerta_activa = true;
 
 -- ────────────────────────────────────────────────────────────────
+-- 11.1 COMPRAS
+--     Registro de compras a proveedor, para el costeo de utilidades
+--     (cuánto se gasta comprando vs. cuánto se vende — ver reporte
+--     /api/reportes/costeo). Cada compra genera además un movimiento
+--     "entrada" en INVENTARIO_MOVIMIENTOS (compra_id abajo) para que
+--     el stock quede consistente, mismo patrón que un pedido genera
+--     una "salida". usuario_id nullable por la misma razón que en
+--     PEDIDO_ESTADOS.
+-- ────────────────────────────────────────────────────────────────
+CREATE TABLE public.compras (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    producto_unidad_id  uuid NOT NULL REFERENCES public.producto_unidades (id) ON DELETE RESTRICT,
+    usuario_id          uuid REFERENCES public.usuarios (id) ON DELETE SET NULL,
+    cantidad            decimal(10, 3) NOT NULL CHECK (cantidad > 0),
+    costo_unitario      decimal(10, 2) NOT NULL CHECK (costo_unitario > 0),
+    costo_total         decimal(10, 2) NOT NULL CHECK (costo_total > 0),
+    proveedor           varchar(150),
+    notas               text,
+    created_at          timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_compras_producto_unidad_id ON public.compras (producto_unidad_id);
+CREATE INDEX ix_compras_created_at ON public.compras (created_at DESC);
+
+-- ────────────────────────────────────────────────────────────────
 -- 12. INVENTARIO_MOVIMIENTOS
 --     usuario_id es nullable por la misma razón que en PEDIDO_ESTADOS:
 --     un movimiento disparado automáticamente por un trigger (stock
@@ -279,6 +304,7 @@ CREATE TABLE public.inventario_movimientos (
     id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     inventario_id    uuid NOT NULL REFERENCES public.inventario (id) ON DELETE CASCADE,
     pedido_id        uuid REFERENCES public.pedidos (id) ON DELETE SET NULL,
+    compra_id        uuid REFERENCES public.compras (id) ON DELETE SET NULL,
     usuario_id       uuid REFERENCES public.usuarios (id) ON DELETE SET NULL,
     tipo             varchar(20) NOT NULL
                      CONSTRAINT ck_inventario_movimientos_tipo CHECK (tipo IN ('entrada', 'salida', 'ajuste')),
@@ -291,6 +317,7 @@ CREATE TABLE public.inventario_movimientos (
 
 CREATE INDEX ix_inventario_movimientos_inventario_id ON public.inventario_movimientos (inventario_id);
 CREATE INDEX ix_inventario_movimientos_pedido_id ON public.inventario_movimientos (pedido_id);
+CREATE INDEX ix_inventario_movimientos_compra_id ON public.inventario_movimientos (compra_id);
 CREATE INDEX ix_inventario_movimientos_created_at ON public.inventario_movimientos (created_at DESC);
 
 -- ────────────────────────────────────────────────────────────────
@@ -607,6 +634,7 @@ ALTER TABLE public.pedido_pago_historial ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notas_venta ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.auditoria ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.compras ENABLE ROW LEVEL SECURITY;
 
 -- PEDIDOS: cualquier usuario interno autenticado puede leer todos los
 -- pedidos (son empleados de la misma empresa); solo la service role
@@ -630,6 +658,13 @@ CREATE POLICY inventario_all_service_role ON public.inventario
   WITH CHECK (true);
 
 CREATE POLICY inventario_movimientos_all_service_role ON public.inventario_movimientos
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- COMPRAS: solo la API (service role) — mismo criterio que INVENTARIO.
+CREATE POLICY compras_all_service_role ON public.compras
   FOR ALL
   TO service_role
   USING (true)

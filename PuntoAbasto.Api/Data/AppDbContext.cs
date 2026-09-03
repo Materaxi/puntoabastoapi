@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<ProductoUnidad> ProductoUnidades => Set<ProductoUnidad>();
     public DbSet<Inventario> Inventarios => Set<Inventario>();
     public DbSet<InventarioMovimiento> InventarioMovimientos => Set<InventarioMovimiento>();
+    public DbSet<Compra> Compras => Set<Compra>();
     public DbSet<Pedido> Pedidos => Set<Pedido>();
     public DbSet<PedidoItem> PedidoItems => Set<PedidoItem>();
     public DbSet<PedidoItemPrecioHistorial> PedidoItemPrecioHistorial => Set<PedidoItemPrecioHistorial>();
@@ -132,8 +133,31 @@ public class AppDbContext : DbContext
                   .HasForeignKey(e => e.PedidoId)
                   .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(e => e.Compra)
+                  .WithMany()
+                  .HasForeignKey(e => e.CompraId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasOne(e => e.Usuario)
                   .WithMany(u => u.InventarioMovimientos)
+                  .HasForeignKey(e => e.UsuarioId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ── COMPRAS ──────────────────────────────────────────────
+        modelBuilder.Entity<Compra>(entity =>
+        {
+            entity.ToTable("compras");
+            entity.Property(e => e.Id).HasDefaultValueSql("gen_random_uuid()").ValueGeneratedOnAdd();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            entity.HasOne(e => e.ProductoUnidad)
+                  .WithMany(u => u.Compras)
+                  .HasForeignKey(e => e.ProductoUnidadId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Usuario)
+                  .WithMany(u => u.Compras)
                   .HasForeignKey(e => e.UsuarioId)
                   .OnDelete(DeleteBehavior.SetNull);
         });

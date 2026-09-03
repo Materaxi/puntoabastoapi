@@ -10,6 +10,7 @@ public class InventarioMovimiento
     public Guid Id { get; set; }
     public Guid InventarioId { get; set; }
     public Guid? PedidoId { get; set; }
+    public Guid? CompraId { get; set; }
     public Guid? UsuarioId { get; set; }
 
     /// <summary>entrada | salida | ajuste</summary>
@@ -23,5 +24,6 @@ public class InventarioMovimiento
 
     public Inventario? Inventario { get; set; }
     public Pedido? Pedido { get; set; }
+    public Compra? Compra { get; set; }
     public Usuario? Usuario { get; set; }
 }
