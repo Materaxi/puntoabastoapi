@@ -97,4 +97,15 @@ public class ReportesController : ControllerBase
         var reporte = await _reporteService.ObtenerPedidosSinNotaVentaAsync(ct);
         return Ok(reporte);
     }
+
+    /// <summary>Lista de compra: suma las cantidades de cada producto a través de todos los
+    /// pedidos en recibido/confirmado/preparando, para ir a comprar lo que falta.</summary>
+    [HttpGet("compras")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(ReporteComprasDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ReporteComprasDto>> ReporteCompras(CancellationToken ct)
+    {
+        var reporte = await _reporteService.ObtenerReporteComprasAsync(ct);
+        return Ok(reporte);
+    }
 }

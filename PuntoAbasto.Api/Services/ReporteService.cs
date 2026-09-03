@@ -215,6 +215,45 @@ public class ReporteService : IReporteService
             .ToListAsync(ct);
     }
 
+    public async Task<ReporteComprasDto> ObtenerReporteComprasAsync(CancellationToken ct)
+    {
+        // Sin filtro de fecha a propósito: puede haber pedidos de días anteriores
+        // que todavía no se despacharon y también hay que comprarles.
+        var estadosPendientes = new[] { "recibido", "confirmado", "preparando" };
+
+        var pedidosQuery = _db.Pedidos.Where(p => estadosPendientes.Contains(p.Estado));
+
+        var pedidos = await pedidosQuery
+            .Include(p => p.Cliente)
+            .OrderBy(p => p.FechaPedido)
+            .Select(p => new PedidoListItemDto(
+                p.Id, p.Numero, p.Cliente!.Nombre, p.Cliente.Telefono, p.Estado, p.Origen,
+                p.Total, p.Pagado, p.MetodoPago, p.Facturado, p.FechaPedido))
+            .ToListAsync(ct);
+
+        // Mismo patrón que ObtenerProductosMasVendidosAsync: resolver primero los
+        // pedido_id válidos como columna escalar, filtrar PedidoItems por eso.
+        var pedidoIdsQuery = pedidosQuery.Select(p => p.Id);
+
+        var agregados = await _db.PedidoItems
+            .Where(i => pedidoIdsQuery.Contains(i.PedidoId))
+            .GroupBy(i => new { i.ProductoNombre, i.UnidadLabel })
+            .Select(g => new
+            {
+                g.Key.ProductoNombre,
+                g.Key.UnidadLabel,
+                CantidadTotal = g.Sum(i => i.Cantidad)
+            })
+            .ToListAsync(ct);
+
+        var items = agregados
+            .OrderBy(a => a.ProductoNombre)
+            .Select(a => new ItemCompraDto(a.ProductoNombre, a.UnidadLabel, a.CantidadTotal))
+            .ToList();
+
+        return new ReporteComprasDto(items, pedidos);
+    }
+
     private static (DateTimeOffset DesdeUtc, DateTimeOffset HastaUtc, DateOnly DesdeFecha, DateOnly HastaFecha) ResolverRango(
         DateOnly? desde, DateOnly? hasta)
     {
