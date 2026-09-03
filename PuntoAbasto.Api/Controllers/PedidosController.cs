@@ -94,6 +94,20 @@ public class PedidosController : ControllerBase
         return Ok(pedido);
     }
 
+    /// <summary>Marca/desmarca el pedido como facturado. Recalcula Total (+16% IVA si
+    /// facturado=true). Bloqueado si el pedido está cancelado o ya pagado.</summary>
+    [HttpPatch("{id:guid}/facturado")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(PedidoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PedidoDetalleDto>> ActualizarFacturado(
+        Guid id, [FromBody] ActualizarFacturadoRequestDto request, CancellationToken ct)
+    {
+        var pedido = await _pedidoService.ActualizarFacturadoAsync(id, request.Facturado, ct);
+        return Ok(pedido);
+    }
+
     /// <summary>Corrige el precio de un ítem (cliente con precio diferenciado).</summary>
     [HttpPatch("{id:guid}/items/{itemId:guid}/precio")]
     [Authorize(Policy = "AdminOVendedor")]

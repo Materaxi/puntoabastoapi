@@ -107,7 +107,7 @@ public class PedidoService : IPedidoService
             Origen = origen,
             Subtotal = subtotalPedido,
             Descuento = request.Descuento,
-            Total = subtotalPedido - request.Descuento,
+            Total = PedidoTotales.Calcular(subtotalPedido, request.Descuento, facturado: false),
             Notas = request.Notas,
             FechaEntregaEst = DateTimeOffset.UtcNow.AddHours(24),
             Items = items
@@ -184,6 +184,38 @@ public class PedidoService : IPedidoService
         return await ObtenerPorIdAsync(id, ct);
     }
 
+    public async Task<PedidoDetalleDto> ActualizarFacturadoAsync(Guid id, bool facturado, CancellationToken ct)
+    {
+        var pedido = await _pedidoRepository.ObtenerPorIdAsync(id, ct)
+            ?? throw new KeyNotFoundException($"No existe el pedido {id}.");
+
+        if (pedido.Estado == "cancelado")
+        {
+            throw new InvalidOperationException("No se puede facturar un pedido cancelado.");
+        }
+
+        if (pedido.Pagado)
+        {
+            throw new InvalidOperationException(
+                "No se puede cambiar la facturación de un pedido ya pagado. Desmarcá el pago primero si necesitás corregirlo.");
+        }
+
+        var totalAnterior = pedido.Total;
+        pedido.Facturado = facturado;
+        pedido.Total = PedidoTotales.Calcular(pedido.Subtotal, pedido.Descuento, facturado);
+
+        // Mismo motivo que en ActualizarPrecioItemAsync: si el pedido ya está
+        // entregado, trg_actualizar_totales_cliente ya sumó el total original.
+        if (pedido.Estado == "entregado" && pedido.Cliente is not null)
+        {
+            pedido.Cliente.TotalGastado += pedido.Total - totalAnterior;
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        return MapToDetalleDto(pedido);
+    }
+
     public async Task<PedidoDetalleDto> ActualizarPrecioItemAsync(
         Guid pedidoId, Guid itemId, decimal nuevoPrecio, ClaimsPrincipal usuario, CancellationToken ct)
     {
@@ -223,7 +255,7 @@ public class PedidoService : IPedidoService
             throw new ArgumentException(
                 $"El nuevo precio deja el descuento (Bs {pedido.Descuento}) por encima del subtotal (Bs {pedido.Subtotal}). Ajustá el descuento primero.");
         }
-        pedido.Total = pedido.Subtotal - pedido.Descuento;
+        pedido.Total = PedidoTotales.Calcular(pedido.Subtotal, pedido.Descuento, pedido.Facturado);
 
         // trg_actualizar_totales_cliente ya sumó el total original al entregar;
         // si el precio cambia después, hay que corregir cliente.total_gastado
@@ -303,6 +335,7 @@ public class PedidoService : IPedidoService
         pedido.Total,
         pedido.Pagado,
         pedido.MetodoPago,
+        pedido.Facturado,
         pedido.FechaPedido);
 
     private static PedidoDetalleDto MapToDetalleDto(Pedido pedido) => new(
@@ -323,6 +356,7 @@ public class PedidoService : IPedidoService
         pedido.Pagado,
         pedido.MetodoPago,
         pedido.FechaPago,
+        pedido.Facturado,
         pedido.Notas,
         pedido.FechaPedido,
         pedido.FechaEntregaEst,

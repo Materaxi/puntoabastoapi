@@ -13,6 +13,7 @@ public record PedidoDetalleDto(
     bool Pagado,
     string? MetodoPago,
     DateTimeOffset? FechaPago,
+    bool Facturado,
     string? Notas,
     DateTimeOffset FechaPedido,
     DateTimeOffset? FechaEntregaEst,

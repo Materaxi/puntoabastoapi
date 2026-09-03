@@ -30,6 +30,10 @@ public class Pedido
     /// <summary>qr | efectivo | transferencia. Null si Pagado es false.</summary>
     public string? MetodoPago { get; set; }
 
+    /// <summary>Si es true, Total incluye el 16% de IVA sobre (Subtotal - Descuento),
+    /// ver Helpers.PedidoTotales. Independiente de Estado y Pagado.</summary>
+    public bool Facturado { get; set; }
+
     public string? Notas { get; set; }
     public DateTimeOffset FechaPedido { get; set; }
     public DateTimeOffset? FechaEntregaEst { get; set; }

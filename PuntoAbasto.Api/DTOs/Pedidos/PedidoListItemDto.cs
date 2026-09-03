@@ -10,4 +10,5 @@ public record PedidoListItemDto(
     decimal Total,
     bool Pagado,
     string? MetodoPago,
+    bool Facturado,
     DateTimeOffset FechaPedido);

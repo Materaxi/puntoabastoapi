@@ -166,6 +166,8 @@ CREATE TABLE public.pedidos (
     metodo_pago         varchar(20)
                         CONSTRAINT ck_pedidos_metodo_pago CHECK (metodo_pago IN ('qr', 'efectivo', 'transferencia')),
     fecha_pago          timestamptz,
+    -- Si es true, total incluye 16% de IVA sobre (subtotal - descuento).
+    facturado           boolean NOT NULL DEFAULT false,
     notas               text,
     fecha_pedido        timestamptz NOT NULL DEFAULT now(),
     fecha_entrega_est   timestamptz,

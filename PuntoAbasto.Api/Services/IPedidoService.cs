@@ -23,6 +23,12 @@ public interface IPedidoService
     Task<PedidoDetalleDto> ActualizarPagoAsync(
         Guid id, bool pagado, string? metodoPago, ClaimsPrincipal usuario, CancellationToken ct);
 
+    /// <summary>Marca/desmarca el pedido como facturado y recalcula Total (suma 16% de
+    /// IVA sobre Subtotal - Descuento cuando facturado es true, ver Helpers.PedidoTotales).
+    /// Bloqueado si el pedido está cancelado o ya pagado, mismo criterio que
+    /// ActualizarPrecioItemAsync.</summary>
+    Task<PedidoDetalleDto> ActualizarFacturadoAsync(Guid id, bool facturado, CancellationToken ct);
+
     /// <summary>Corrige el precio de un ítem (cliente con precio diferenciado) y
     /// recalcula subtotal/total. Si el pedido ya está entregado, ajusta también
     /// el total_gastado del cliente por la diferencia. Registra quién hizo el
