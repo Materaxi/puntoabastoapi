@@ -24,12 +24,12 @@ public class InventarioService : IInventarioService
     }
 
     public async Task<PagedResultDto<InventarioDto>> BuscarAsync(
-        bool? alertaActiva, Guid? productoId, int page, int pageSize, CancellationToken ct)
+        bool? alertaActiva, Guid? productoId, string? q, int page, int pageSize, CancellationToken ct)
     {
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > PageSizeMaximo ? 20 : pageSize;
 
-        var filtro = new InventarioFiltro(alertaActiva, productoId, page, pageSize);
+        var filtro = new InventarioFiltro(alertaActiva, productoId, q, page, pageSize);
         var (items, totalCount) = await _inventarioRepository.BuscarAsync(filtro, ct);
 
         return new PagedResultDto<InventarioDto>(items.Select(MapToDto).ToList(), page, pageSize, totalCount);
@@ -112,6 +112,41 @@ public class InventarioService : IInventarioService
             StockNuevo = stockNuevo,
             Motivo = request.Motivo
         });
+
+        await _db.SaveChangesAsync(ct);
+
+        return await ObtenerPorIdAsync(id, ct);
+    }
+
+    public async Task<InventarioDto> ActualizarStockAsync(Guid id, decimal stockActual, ClaimsPrincipal usuario, CancellationToken ct)
+    {
+        if (stockActual < 0)
+        {
+            throw new ArgumentException("El stock no puede ser negativo.");
+        }
+
+        var inventario = await _db.Inventarios.FirstOrDefaultAsync(i => i.Id == id, ct)
+            ?? throw new KeyNotFoundException($"No existe el registro de inventario {id}.");
+
+        var stockAnterior = inventario.StockActual;
+        var delta = stockActual - stockAnterior;
+
+        inventario.StockActual = stockActual;
+
+        // Sin movimiento si el conteo confirma el mismo stock que ya había (nada que auditar).
+        if (delta != 0)
+        {
+            _db.InventarioMovimientos.Add(new InventarioMovimiento
+            {
+                InventarioId = inventario.Id,
+                UsuarioId = usuario.GetUsuarioId(),
+                Tipo = "ajuste",
+                Cantidad = delta,
+                StockAnterior = stockAnterior,
+                StockNuevo = stockActual,
+                Motivo = "Conteo de stock (almacén)"
+            });
+        }
 
         await _db.SaveChangesAsync(ct);
 

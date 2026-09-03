@@ -34,6 +34,12 @@ public class InventarioRepository : IInventarioRepository
             query = query.Where(i => i.ProductoUnidad!.ProductoId == filtro.ProductoId);
         }
 
+        if (!string.IsNullOrWhiteSpace(filtro.Q))
+        {
+            var patron = $"%{filtro.Q.Trim()}%";
+            query = query.Where(i => EF.Functions.ILike(i.ProductoUnidad!.Producto!.Nombre, patron));
+        }
+
         var totalCount = await query.CountAsync(ct);
 
         var items = await query

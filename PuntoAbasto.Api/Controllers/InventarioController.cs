@@ -24,11 +24,12 @@ public class InventarioController : ControllerBase
     public async Task<ActionResult<PagedResultDto<InventarioDto>>> Buscar(
         [FromQuery] bool? alertaActiva,
         [FromQuery] Guid? productoId,
+        [FromQuery] string? q,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var resultado = await _inventarioService.BuscarAsync(alertaActiva, productoId, page, pageSize, ct);
+        var resultado = await _inventarioService.BuscarAsync(alertaActiva, productoId, q, page, pageSize, ct);
         return Ok(resultado);
     }
 

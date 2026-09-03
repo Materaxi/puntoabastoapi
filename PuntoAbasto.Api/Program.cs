@@ -254,6 +254,11 @@ try
 
         options.AddPolicy("AdminOVendedorODelivery", policy => policy
             .RequireClaim(SupabaseRoleClaimsTransformation.RoleClaimType, "admin", "vendedor", "delivery"));
+
+        // Módulo simplificado de almacén (solo actualizar stock): admin + almacenero.
+        // Vendedor/delivery no lo necesitan, tienen el módulo de productos completo.
+        options.AddPolicy("AdminOAlmacenero", policy => policy
+            .RequireClaim(SupabaseRoleClaimsTransformation.RoleClaimType, "admin", "almacenero"));
     });
 
     // ── Swagger ──────────────────────────────────────────────────────

@@ -13,7 +13,7 @@ public class UsuarioService : IUsuarioService
 {
     public const string SupabaseAdminHttpClientName = "SupabaseAdmin";
     private const int PageSizeMaximo = 100;
-    private static readonly string[] RolesValidos = ["admin", "vendedor", "delivery"];
+    private static readonly string[] RolesValidos = ["admin", "vendedor", "delivery", "almacenero"];
 
     private readonly AppDbContext _db;
     private readonly IHttpClientFactory _httpClientFactory;

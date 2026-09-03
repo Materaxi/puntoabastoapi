@@ -1,3 +1,3 @@
 namespace PuntoAbasto.Api.Repositories;
 
-public record InventarioFiltro(bool? AlertaActiva, Guid? ProductoId, int Page, int PageSize);
+public record InventarioFiltro(bool? AlertaActiva, Guid? ProductoId, string? Q, int Page, int PageSize);

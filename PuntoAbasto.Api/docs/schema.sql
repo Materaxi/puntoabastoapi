@@ -21,7 +21,7 @@ CREATE TABLE public.usuarios (
     nombre        varchar(100) NOT NULL,
     email         varchar(150) NOT NULL UNIQUE,
     rol           varchar(20)  NOT NULL DEFAULT 'vendedor'
-                  CONSTRAINT ck_usuarios_rol CHECK (rol IN ('admin', 'vendedor', 'delivery')),
+                  CONSTRAINT ck_usuarios_rol CHECK (rol IN ('admin', 'vendedor', 'delivery', 'almacenero')),
     activo        boolean NOT NULL DEFAULT true,
     ultimo_login  timestamptz,
     created_at    timestamptz NOT NULL DEFAULT now(),
