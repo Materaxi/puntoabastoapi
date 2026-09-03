@@ -18,8 +18,10 @@ public interface IPedidoService
         Guid id, string nuevoEstado, string? observacion, ClaimsPrincipal usuario, CancellationToken ct);
 
     /// <summary>Marca/desmarca el pago, independiente del estado de entrega.
-    /// Registra quién lo hizo en PEDIDO_PAGO_HISTORIAL.</summary>
-    Task<PedidoDetalleDto> ActualizarPagoAsync(Guid id, bool pagado, ClaimsPrincipal usuario, CancellationToken ct);
+    /// metodoPago es requerido cuando pagado es true (qr | efectivo | transferencia)
+    /// y se ignora cuando es false. Registra quién lo hizo en PEDIDO_PAGO_HISTORIAL.</summary>
+    Task<PedidoDetalleDto> ActualizarPagoAsync(
+        Guid id, bool pagado, string? metodoPago, ClaimsPrincipal usuario, CancellationToken ct);
 
     /// <summary>Corrige el precio de un ítem (cliente con precio diferenciado) y
     /// recalcula subtotal/total. Si el pedido ya está entregado, ajusta también

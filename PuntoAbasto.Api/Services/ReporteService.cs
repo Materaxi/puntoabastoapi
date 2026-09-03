@@ -211,7 +211,7 @@ public class ReporteService : IReporteService
             .Include(p => p.Cliente)
             .Where(p => p.Estado == "entregado" && p.NotaVenta == null)
             .OrderByDescending(p => p.FechaEntregaReal)
-            .Select(p => new PedidoListItemDto(p.Id, p.Numero, p.Cliente!.Nombre, p.Cliente.Telefono, p.Estado, p.Origen, p.Total, p.Pagado, p.FechaPedido))
+            .Select(p => new PedidoListItemDto(p.Id, p.Numero, p.Cliente!.Nombre, p.Cliente.Telefono, p.Estado, p.Origen, p.Total, p.Pagado, p.MetodoPago, p.FechaPedido))
             .ToListAsync(ct);
     }
 

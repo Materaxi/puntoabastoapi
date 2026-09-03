@@ -9,6 +9,7 @@ public class PedidoPagoHistorial
     public Guid PedidoId { get; set; }
     public Guid? UsuarioId { get; set; }
     public bool Pagado { get; set; }
+    public string? MetodoPago { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 
     [JsonIgnore]

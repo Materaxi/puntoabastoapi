@@ -146,18 +146,34 @@ public class PedidoService : IPedidoService
         return new PagedResultDto<PedidoListItemDto>(items, page, pageSize, totalCount);
     }
 
-    public async Task<PedidoDetalleDto> ActualizarPagoAsync(Guid id, bool pagado, ClaimsPrincipal usuario, CancellationToken ct)
+    public async Task<PedidoDetalleDto> ActualizarPagoAsync(
+        Guid id, bool pagado, string? metodoPago, ClaimsPrincipal usuario, CancellationToken ct)
     {
+        if (pagado)
+        {
+            if (string.IsNullOrWhiteSpace(metodoPago) || !MetodosPago.Validos.Contains(metodoPago))
+            {
+                throw new ArgumentException(
+                    $"metodoPago debe ser uno de: {string.Join(", ", MetodosPago.Validos)}.");
+            }
+        }
+        else
+        {
+            metodoPago = null;
+        }
+
         var pedido = await _pedidoRepository.ObtenerPorIdAsync(id, ct)
             ?? throw new KeyNotFoundException($"No existe el pedido {id}.");
 
         pedido.Pagado = pagado;
+        pedido.MetodoPago = metodoPago;
         pedido.FechaPago = pagado ? DateTimeOffset.UtcNow : null;
         pedido.HistorialPago.Add(new PedidoPagoHistorial
         {
             PedidoId = pedido.Id,
             UsuarioId = usuario.GetUsuarioId(),
-            Pagado = pagado
+            Pagado = pagado,
+            MetodoPago = metodoPago
         });
 
         await _db.SaveChangesAsync(ct);
@@ -286,6 +302,7 @@ public class PedidoService : IPedidoService
         pedido.Origen,
         pedido.Total,
         pedido.Pagado,
+        pedido.MetodoPago,
         pedido.FechaPedido);
 
     private static PedidoDetalleDto MapToDetalleDto(Pedido pedido) => new(
@@ -304,6 +321,7 @@ public class PedidoService : IPedidoService
         pedido.Descuento,
         pedido.Total,
         pedido.Pagado,
+        pedido.MetodoPago,
         pedido.FechaPago,
         pedido.Notas,
         pedido.FechaPedido,
@@ -316,5 +334,5 @@ public class PedidoService : IPedidoService
         pedido.HistorialEstados.Select(h => new PedidoEstadoHistorialDto(
             h.EstadoAnterior, h.EstadoNuevo, h.Observacion, h.Usuario?.Nombre, h.CreatedAt)).ToList(),
         pedido.HistorialPago.Select(h => new PedidoPagoHistorialDto(
-            h.Pagado, h.Usuario?.Nombre, h.CreatedAt)).ToList());
+            h.Pagado, h.MetodoPago, h.Usuario?.Nombre, h.CreatedAt)).ToList());
 }

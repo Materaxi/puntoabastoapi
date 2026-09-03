@@ -90,7 +90,7 @@ public class PedidosController : ControllerBase
     public async Task<ActionResult<PedidoDetalleDto>> ActualizarPago(
         Guid id, [FromBody] ActualizarPagoRequestDto request, CancellationToken ct)
     {
-        var pedido = await _pedidoService.ActualizarPagoAsync(id, request.Pagado, User, ct);
+        var pedido = await _pedidoService.ActualizarPagoAsync(id, request.Pagado, request.MetodoPago, User, ct);
         return Ok(pedido);
     }
 

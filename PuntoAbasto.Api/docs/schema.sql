@@ -162,6 +162,9 @@ CREATE TABLE public.pedidos (
     -- (se puede entregar y cobrar días después). No participa de la máquina
     -- de estados en PedidoEstadoTransiciones.
     pagado              boolean NOT NULL DEFAULT false,
+    -- Null si pagado es false; requerido por la API al marcar pagado = true.
+    metodo_pago         varchar(20)
+                        CONSTRAINT ck_pedidos_metodo_pago CHECK (metodo_pago IN ('qr', 'efectivo', 'transferencia')),
     fecha_pago          timestamptz,
     notas               text,
     fecha_pedido        timestamptz NOT NULL DEFAULT now(),
@@ -240,6 +243,8 @@ CREATE TABLE public.pedido_pago_historial (
     pedido_id   uuid NOT NULL REFERENCES public.pedidos (id) ON DELETE CASCADE,
     usuario_id  uuid REFERENCES public.usuarios (id) ON DELETE SET NULL,
     pagado      boolean NOT NULL,
+    metodo_pago varchar(20)
+                CONSTRAINT ck_pedido_pago_historial_metodo_pago CHECK (metodo_pago IN ('qr', 'efectivo', 'transferencia')),
     created_at  timestamptz NOT NULL DEFAULT now()
 );
 

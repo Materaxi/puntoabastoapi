@@ -27,6 +27,9 @@ public class Pedido
     public bool Pagado { get; set; }
     public DateTimeOffset? FechaPago { get; set; }
 
+    /// <summary>qr | efectivo | transferencia. Null si Pagado es false.</summary>
+    public string? MetodoPago { get; set; }
+
     public string? Notas { get; set; }
     public DateTimeOffset FechaPedido { get; set; }
     public DateTimeOffset? FechaEntregaEst { get; set; }
