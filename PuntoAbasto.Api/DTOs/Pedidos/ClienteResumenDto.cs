@@ -5,4 +5,6 @@ public record ClienteResumenDto(
     string Nombre,
     string Telefono,
     string Direccion,
-    string? ReferenciaDireccion);
+    string? ReferenciaDireccion,
+    string? UbicacionGps,
+    string? Email);

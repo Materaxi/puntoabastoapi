@@ -15,8 +15,9 @@ public class CrearPedidoRequestDto
     [Required, StringLength(100)]
     public string ClienteNombre { get; set; } = string.Empty;
 
-    [Required]
-    public string ClienteDireccion { get; set; } = string.Empty;
+    /// <summary>Opcional: si el cliente no la puso en el formulario corto, el negocio
+    /// la pide después por WhatsApp y la completa en el panel (ver PedidoDetalleModal).</summary>
+    public string? ClienteDireccion { get; set; }
 
     public string? ClienteReferenciaDireccion { get; set; }
 

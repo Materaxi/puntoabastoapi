@@ -82,6 +82,9 @@ CREATE TABLE public.clientes (
     telefono              varchar(20) NOT NULL UNIQUE,
     direccion             text NOT NULL,
     referencia_direccion  text,
+    -- Link de Google Maps o "lat,long" que el negocio pide por WhatsApp cuando
+    -- la dirección de texto no alcanza para ubicar la entrega.
+    ubicacion_gps         text,
     email                 varchar(150),
     total_pedidos         int NOT NULL DEFAULT 0 CHECK (total_pedidos >= 0),
     total_gastado         decimal(10, 2) NOT NULL DEFAULT 0 CHECK (total_gastado >= 0),

@@ -5,4 +5,5 @@ public record CrearClienteRequestDto(
     string Telefono,
     string Direccion,
     string? ReferenciaDireccion,
+    string? UbicacionGps,
     string? Email);

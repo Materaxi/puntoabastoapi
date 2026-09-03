@@ -13,6 +13,11 @@ public class Cliente
     public string Telefono { get; set; } = string.Empty;
     public string Direccion { get; set; } = string.Empty;
     public string? ReferenciaDireccion { get; set; }
+
+    /// <summary>Link de Google Maps o coordenadas "lat,long" que el negocio pide por
+    /// WhatsApp cuando la dirección de texto no alcanza para ubicar la entrega.</summary>
+    public string? UbicacionGps { get; set; }
+
     public string? Email { get; set; }
     public int TotalPedidos { get; set; }
     public decimal TotalGastado { get; set; }

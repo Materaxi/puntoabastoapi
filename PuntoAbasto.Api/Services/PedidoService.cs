@@ -39,6 +39,10 @@ public class PedidoService : IPedidoService
         // El cliente no tiene cuenta: se identifica por teléfono. Si ya existe,
         // reaprovechamos la fila y refrescamos los datos de contacto/entrega con
         // lo que vino en este pedido (puede haber cambiado de dirección, etc.).
+        // Dirección/referencia/email son opcionales (el formulario corto del
+        // storefront solo pide nombre+teléfono; el resto se completa después
+        // por WhatsApp, ver ClienteFormModal): si el pedido no trae un dato,
+        // NO pisamos lo que ya había en el cliente con un valor vacío.
         var cliente = await _db.Clientes.FirstOrDefaultAsync(c => c.Telefono == request.ClienteTelefono, ct);
         if (cliente is null)
         {
@@ -46,7 +50,7 @@ public class PedidoService : IPedidoService
             {
                 Nombre = request.ClienteNombre,
                 Telefono = request.ClienteTelefono,
-                Direccion = request.ClienteDireccion,
+                Direccion = request.ClienteDireccion ?? string.Empty,
                 ReferenciaDireccion = request.ClienteReferenciaDireccion,
                 Email = request.ClienteEmail
             };
@@ -55,9 +59,18 @@ public class PedidoService : IPedidoService
         else
         {
             cliente.Nombre = request.ClienteNombre;
-            cliente.Direccion = request.ClienteDireccion;
-            cliente.ReferenciaDireccion = request.ClienteReferenciaDireccion;
-            cliente.Email = request.ClienteEmail;
+            if (!string.IsNullOrWhiteSpace(request.ClienteDireccion))
+            {
+                cliente.Direccion = request.ClienteDireccion;
+            }
+            if (!string.IsNullOrWhiteSpace(request.ClienteReferenciaDireccion))
+            {
+                cliente.ReferenciaDireccion = request.ClienteReferenciaDireccion;
+            }
+            if (!string.IsNullOrWhiteSpace(request.ClienteEmail))
+            {
+                cliente.Email = request.ClienteEmail;
+            }
         }
 
         var unidadIds = request.Items.Select(i => i.ProductoUnidadId).Distinct().ToList();
@@ -330,6 +343,7 @@ public class PedidoService : IPedidoService
         pedido.Numero,
         pedido.Cliente!.Nombre,
         pedido.Cliente.Telefono,
+        pedido.Cliente.Direccion,
         pedido.Estado,
         pedido.Origen,
         pedido.Total,
@@ -346,7 +360,9 @@ public class PedidoService : IPedidoService
             pedido.Cliente.Nombre,
             pedido.Cliente.Telefono,
             pedido.Cliente.Direccion,
-            pedido.Cliente.ReferenciaDireccion),
+            pedido.Cliente.ReferenciaDireccion,
+            pedido.Cliente.UbicacionGps,
+            pedido.Cliente.Email),
         pedido.Usuario?.Nombre,
         pedido.Estado,
         pedido.Origen,

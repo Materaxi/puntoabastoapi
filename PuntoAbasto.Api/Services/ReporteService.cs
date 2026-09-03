@@ -211,7 +211,7 @@ public class ReporteService : IReporteService
             .Include(p => p.Cliente)
             .Where(p => p.Estado == "entregado" && p.NotaVenta == null)
             .OrderByDescending(p => p.FechaEntregaReal)
-            .Select(p => new PedidoListItemDto(p.Id, p.Numero, p.Cliente!.Nombre, p.Cliente.Telefono, p.Estado, p.Origen, p.Total, p.Pagado, p.MetodoPago, p.Facturado, p.FechaPedido))
+            .Select(p => new PedidoListItemDto(p.Id, p.Numero, p.Cliente!.Nombre, p.Cliente.Telefono, p.Cliente.Direccion, p.Estado, p.Origen, p.Total, p.Pagado, p.MetodoPago, p.Facturado, p.FechaPedido))
             .ToListAsync(ct);
     }
 
@@ -227,7 +227,7 @@ public class ReporteService : IReporteService
             .Include(p => p.Cliente)
             .OrderBy(p => p.FechaPedido)
             .Select(p => new PedidoListItemDto(
-                p.Id, p.Numero, p.Cliente!.Nombre, p.Cliente.Telefono, p.Estado, p.Origen,
+                p.Id, p.Numero, p.Cliente!.Nombre, p.Cliente.Telefono, p.Cliente.Direccion, p.Estado, p.Origen,
                 p.Total, p.Pagado, p.MetodoPago, p.Facturado, p.FechaPedido))
             .ToListAsync(ct);
 

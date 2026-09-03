@@ -129,7 +129,7 @@ public class NotaVentaService : INotaVentaService
             notaVenta.Numero,
             pedido.Id,
             pedido.Numero,
-            new ClienteResumenDto(cliente.Id, cliente.Nombre, cliente.Telefono, cliente.Direccion, cliente.ReferenciaDireccion),
+            new ClienteResumenDto(cliente.Id, cliente.Nombre, cliente.Telefono, cliente.Direccion, cliente.ReferenciaDireccion, cliente.UbicacionGps, cliente.Email),
             notaVenta.Usuario?.Nombre,
             notaVenta.Subtotal,
             notaVenta.Descuento,

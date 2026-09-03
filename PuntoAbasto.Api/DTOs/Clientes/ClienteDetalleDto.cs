@@ -6,6 +6,7 @@ public record ClienteDetalleDto(
     string Telefono,
     string Direccion,
     string? ReferenciaDireccion,
+    string? UbicacionGps,
     string? Email,
     int TotalPedidos,
     decimal TotalGastado,

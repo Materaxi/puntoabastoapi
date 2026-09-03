@@ -51,6 +51,7 @@ public class ClienteService : IClienteService
             Telefono = request.Telefono,
             Direccion = request.Direccion,
             ReferenciaDireccion = request.ReferenciaDireccion,
+            UbicacionGps = request.UbicacionGps,
             Email = request.Email
         };
 
@@ -78,6 +79,7 @@ public class ClienteService : IClienteService
         cliente.Telefono = request.Telefono;
         cliente.Direccion = request.Direccion;
         cliente.ReferenciaDireccion = request.ReferenciaDireccion;
+        cliente.UbicacionGps = request.UbicacionGps;
         cliente.Email = request.Email;
 
         await _db.SaveChangesAsync(ct);
@@ -91,6 +93,6 @@ public class ClienteService : IClienteService
 
     private static ClienteDetalleDto MapToDetalleDto(Cliente cliente) => new(
         cliente.Id, cliente.Nombre, cliente.Telefono, cliente.Direccion,
-        cliente.ReferenciaDireccion, cliente.Email, cliente.TotalPedidos, cliente.TotalGastado,
+        cliente.ReferenciaDireccion, cliente.UbicacionGps, cliente.Email, cliente.TotalPedidos, cliente.TotalGastado,
         cliente.CreatedAt, cliente.UpdatedAt);
 }
