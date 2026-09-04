@@ -235,20 +235,42 @@ public class ReporteService : IReporteService
         // pedido_id válidos como columna escalar, filtrar PedidoItems por eso.
         var pedidoIdsQuery = pedidosQuery.Select(p => p.Id);
 
-        var agregados = await _db.PedidoItems
+        // Se trae ProductoUnidadId (nullable: puede ser null si esa unidad se
+        // borró después de hacerse el pedido) para poder cruzar contra el stock
+        // actual más abajo. El agrupado en sí sigue siendo por (nombre, unidad)
+        // — igual que antes — no por id, porque ProductoNombre/UnidadLabel es
+        // lo único que sobrevive si la unidad ya no existe.
+        var itemsPendientes = await _db.PedidoItems
             .Where(i => pedidoIdsQuery.Contains(i.PedidoId))
+            .Select(i => new { i.ProductoUnidadId, i.ProductoNombre, i.UnidadLabel, i.Cantidad })
+            .ToListAsync(ct);
+
+        var agregados = itemsPendientes
             .GroupBy(i => new { i.ProductoNombre, i.UnidadLabel })
             .Select(g => new
             {
                 g.Key.ProductoNombre,
                 g.Key.UnidadLabel,
-                CantidadTotal = g.Sum(i => i.Cantidad)
+                ProductoUnidadId = g.Select(i => i.ProductoUnidadId).FirstOrDefault(id => id != null),
+                CantidadNecesaria = g.Sum(i => i.Cantidad)
             })
-            .ToListAsync(ct);
+            .ToList();
+
+        var unidadIds = agregados.Where(a => a.ProductoUnidadId is not null).Select(a => a.ProductoUnidadId!.Value).ToList();
+        var stockPorUnidad = await _db.Inventarios
+            .Where(inv => unidadIds.Contains(inv.ProductoUnidadId))
+            .ToDictionaryAsync(inv => inv.ProductoUnidadId, inv => inv.StockActual, ct);
 
         var items = agregados
             .OrderBy(a => a.ProductoNombre)
-            .Select(a => new ItemCompraDto(a.ProductoNombre, a.UnidadLabel, a.CantidadTotal))
+            .Select(a =>
+            {
+                var stockActual = a.ProductoUnidadId is not null && stockPorUnidad.TryGetValue(a.ProductoUnidadId.Value, out var s)
+                    ? s
+                    : 0m;
+                var aComprar = Math.Max(0, a.CantidadNecesaria - stockActual);
+                return new ItemCompraDto(a.ProductoNombre, a.UnidadLabel, a.CantidadNecesaria, stockActual, aComprar);
+            })
             .ToList();
 
         return new ReporteComprasDto(items, pedidos);
