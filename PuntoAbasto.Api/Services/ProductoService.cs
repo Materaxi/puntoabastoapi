@@ -234,12 +234,20 @@ public class ProductoService : IProductoService
         var tienePedidos = await _db.PedidoItems.AnyAsync(i => i.ProductoUnidadId == unidadId, ct);
         var tieneMovimientos = unidad.Inventario is not null &&
             await _db.InventarioMovimientos.AnyAsync(m => m.InventarioId == unidad.Inventario.Id, ct);
+        var tieneStock = unidad.Inventario is not null && unidad.Inventario.StockActual > 0;
 
         if (tienePedidos || tieneMovimientos)
         {
             throw new InvalidOperationException(
                 "No se puede eliminar esta unidad: tiene pedidos o movimientos de inventario asociados. " +
                 "Marcá el producto como no disponible en vez de borrar la unidad.");
+        }
+
+        if (tieneStock)
+        {
+            throw new InvalidOperationException(
+                "No se puede eliminar esta unidad: todavía tiene stock cargado. " +
+                "Ajustá el stock a 0 desde \"Ajustar stock\" antes de borrarla.");
         }
 
         if (unidad.EsDefault)
