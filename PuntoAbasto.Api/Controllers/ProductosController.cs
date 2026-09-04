@@ -130,6 +130,18 @@ public class ProductosController : ControllerBase
         return Ok(unidad);
     }
 
+    /// <summary>Toggle de "no disponible" para una unidad: se oculta del catálogo público
+    /// pero conserva su historial de pedidos/movimientos. Siempre permitido.</summary>
+    [HttpPatch("{id:guid}/unidades/{unidadId:guid}/disponibilidad")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(ProductoUnidadInternaDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ProductoUnidadInternaDto>> ActualizarDisponibilidadUnidad(
+        Guid id, Guid unidadId, [FromBody] ActualizarDisponibilidadRequestDto request, CancellationToken ct)
+    {
+        var unidad = await _productoService.ActualizarDisponibilidadUnidadAsync(id, unidadId, request.Disponible, ct);
+        return Ok(unidad);
+    }
+
     /// <summary>Falla con 409 si la unidad tiene pedidos o movimientos de inventario asociados.</summary>
     [HttpDelete("{id:guid}/unidades/{unidadId:guid}")]
     [Authorize(Policy = "Admin")]

@@ -135,6 +135,7 @@ CREATE TABLE public.producto_unidades (
     label         varchar(50) NOT NULL,
     precio        decimal(10, 2) NOT NULL CHECK (precio >= 0),
     es_default    boolean NOT NULL DEFAULT false,
+    disponible    boolean NOT NULL DEFAULT true,
     orden         int NOT NULL DEFAULT 0
 );
 

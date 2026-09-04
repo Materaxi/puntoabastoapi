@@ -224,6 +224,39 @@ public class ProductoService : IProductoService
         return MapToUnidadDto(unidad);
     }
 
+    /// <summary>Oculta/muestra la unidad en el catálogo público sin tocar su historial ni su stock.
+    /// A diferencia de EliminarUnidadAsync, esto siempre está permitido (incluso con pedidos o
+    /// movimientos), porque no borra nada.</summary>
+    public async Task<ProductoUnidadInternaDto> ActualizarDisponibilidadUnidadAsync(
+        Guid productoId, Guid unidadId, bool disponible, CancellationToken ct)
+    {
+        var unidad = await _db.ProductoUnidades
+            .Include(u => u.Inventario)
+            .FirstOrDefaultAsync(u => u.Id == unidadId && u.ProductoId == productoId, ct)
+            ?? throw new KeyNotFoundException($"No existe la unidad {unidadId} para el producto {productoId}.");
+
+        if (!disponible && unidad.EsDefault)
+        {
+            var promoverADefault = await _db.ProductoUnidades
+                .Where(u => u.ProductoId == productoId && u.Id != unidadId && u.Disponible)
+                .OrderBy(u => u.Orden)
+                .FirstOrDefaultAsync(ct);
+
+            if (promoverADefault is not null)
+            {
+                unidad.EsDefault = false;
+                promoverADefault.EsDefault = true;
+            }
+            // Si no hay otra unidad disponible para promover, se deja esta como default
+            // igual (sigue siendo la única referencia, aunque esté oculta al público).
+        }
+
+        unidad.Disponible = disponible;
+        await _db.SaveChangesAsync(ct);
+
+        return MapToUnidadDto(unidad);
+    }
+
     public async Task EliminarUnidadAsync(Guid productoId, Guid unidadId, CancellationToken ct)
     {
         var unidad = await _db.ProductoUnidades
@@ -313,6 +346,7 @@ public class ProductoService : IProductoService
         producto.Badge,
         producto.Disponible,
         producto.Unidades
+            .Where(u => u.Disponible)
             .OrderBy(u => u.Orden)
             .Select(u => new ProductoUnidadPublicaDto(u.Id, u.Label, u.Precio, u.EsDefault, u.Inventario?.StockActual > 0))
             .ToList());
@@ -337,7 +371,7 @@ public class ProductoService : IProductoService
     {
         var inventario = unidad.Inventario!;
         return new ProductoUnidadInternaDto(
-            unidad.Id, unidad.Label, unidad.Precio, unidad.EsDefault, unidad.Orden,
+            unidad.Id, unidad.Label, unidad.Precio, unidad.EsDefault, unidad.Disponible, unidad.Orden,
             inventario.Id, inventario.StockActual, inventario.StockMinimo, inventario.StockMaximo,
             inventario.UnidadMedida, inventario.AlertaActiva);
     }

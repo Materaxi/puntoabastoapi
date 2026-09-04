@@ -6,6 +6,7 @@ public record ProductoUnidadInternaDto(
     string Label,
     decimal Precio,
     bool EsDefault,
+    bool Disponible,
     int Orden,
     Guid InventarioId,
     decimal StockActual,

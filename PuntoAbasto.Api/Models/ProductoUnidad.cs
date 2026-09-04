@@ -14,6 +14,7 @@ public class ProductoUnidad
     public string Label { get; set; } = string.Empty;
     public decimal Precio { get; set; }
     public bool EsDefault { get; set; }
+    public bool Disponible { get; set; } = true;
     public int Orden { get; set; }
 
     public Producto? Producto { get; set; }

@@ -19,5 +19,7 @@ public interface IProductoService
     Task<ProductoUnidadInternaDto> AgregarUnidadAsync(Guid productoId, CrearProductoUnidadRequestDto request, CancellationToken ct);
     Task<ProductoUnidadInternaDto> ActualizarUnidadAsync(
         Guid productoId, Guid unidadId, ActualizarUnidadRequestDto request, CancellationToken ct);
+    Task<ProductoUnidadInternaDto> ActualizarDisponibilidadUnidadAsync(
+        Guid productoId, Guid unidadId, bool disponible, CancellationToken ct);
     Task EliminarUnidadAsync(Guid productoId, Guid unidadId, CancellationToken ct);
 }
