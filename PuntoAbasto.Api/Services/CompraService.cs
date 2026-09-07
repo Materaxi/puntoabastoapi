@@ -31,6 +31,11 @@ public class CompraService : ICompraService
             throw new ArgumentException("El costo unitario debe ser mayor a 0.");
         }
 
+        if (request.PrecioVenta <= 0)
+        {
+            throw new ArgumentException("El precio de venta debe ser mayor a 0.");
+        }
+
         var productoUnidad = await _db.ProductoUnidades
             .Include(u => u.Producto)
             .FirstOrDefaultAsync(u => u.Id == request.ProductoUnidadId, ct)
@@ -54,6 +59,11 @@ public class CompraService : ICompraService
             Notas = request.Notas
         };
         _db.Compras.Add(compra);
+
+        // La compra fija el precio de venta vigente del producto (sugerido +30% sobre
+        // el costo, editable en el form) — mismo campo que edita el form de Productos,
+        // sin historial de cambios de precio.
+        productoUnidad.Precio = request.PrecioVenta;
 
         var stockAnterior = inventario.StockActual;
         var stockNuevo = stockAnterior + request.Cantidad;
