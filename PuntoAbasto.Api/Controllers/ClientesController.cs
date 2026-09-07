@@ -13,10 +13,12 @@ namespace PuntoAbasto.Api.Controllers;
 public class ClientesController : ControllerBase
 {
     private readonly IClienteService _clienteService;
+    private readonly IClientePortalService _clientePortalService;
 
-    public ClientesController(IClienteService clienteService)
+    public ClientesController(IClienteService clienteService, IClientePortalService clientePortalService)
     {
         _clienteService = clienteService;
+        _clientePortalService = clientePortalService;
     }
 
     [HttpGet]
@@ -55,6 +57,28 @@ public class ClientesController : ControllerBase
         Guid id, [FromBody] ActualizarClienteRequestDto request, CancellationToken ct)
     {
         var cliente = await _clienteService.ActualizarAsync(id, request, ct);
+        return Ok(cliente);
+    }
+
+    /// <summary>Da de alta el acceso al portal B2B para este cliente (grupo selecto de
+    /// empresas). La contraseña temporal la genera/copia el usuario en el admin y se la
+    /// comunica manualmente (WhatsApp), no hay email transaccional.</summary>
+    [HttpPost("{id:guid}/acceso-portal")]
+    [ProducesResponseType(typeof(ClienteDetalleDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ClienteDetalleDto>> HabilitarAccesoPortal(
+        Guid id, [FromBody] HabilitarAccesoPortalRequestDto request, CancellationToken ct)
+    {
+        await _clientePortalService.HabilitarAccesoAsync(id, request.Email, request.PasswordTemporal, ct);
+        var cliente = await _clienteService.ObtenerPorIdAsync(id, ct);
+        return Ok(cliente);
+    }
+
+    [HttpDelete("{id:guid}/acceso-portal")]
+    [ProducesResponseType(typeof(ClienteDetalleDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ClienteDetalleDto>> RevocarAccesoPortal(Guid id, CancellationToken ct)
+    {
+        await _clientePortalService.RevocarAccesoAsync(id, ct);
+        var cliente = await _clienteService.ObtenerPorIdAsync(id, ct);
         return Ok(cliente);
     }
 }

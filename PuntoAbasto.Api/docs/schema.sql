@@ -35,9 +35,25 @@ CREATE INDEX ix_usuarios_activo ON public.usuarios (activo);
 -- crea un usuario nuevo. El rol y el nombre se leen de user_metadata,
 -- que el panel de administración (o el Auth Dashboard) debe setear al
 -- invitar/crear al usuario interno.
+--
+-- Excepción: si el auth user nuevo es un cliente-empresa dado de alta
+-- para el portal (user_metadata.es_cliente_portal = true, seteado por
+-- ClientePortalService al habilitar el acceso), NO es staff — no se
+-- inserta en usuarios (violaría ck_usuarios_rol y conflaría dos
+-- conceptos distintos). En cambio se vincula el auth user ya creado
+-- con la fila de CLIENTES existente (user_metadata.cliente_id).
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
+  IF COALESCE((new.raw_user_meta_data->>'es_cliente_portal')::boolean, false) THEN
+    UPDATE public.clientes
+    SET auth_user_id = new.id,
+        acceso_portal = true,
+        updated_at = now()
+    WHERE id = (new.raw_user_meta_data->>'cliente_id')::uuid;
+    RETURN new;
+  END IF;
+
   INSERT INTO public.usuarios (id, email, nombre, rol)
   VALUES (
     new.id,
@@ -88,11 +104,19 @@ CREATE TABLE public.clientes (
     email                 varchar(150),
     total_pedidos         int NOT NULL DEFAULT 0 CHECK (total_pedidos >= 0),
     total_gastado         decimal(10, 2) NOT NULL DEFAULT 0 CHECK (total_gastado >= 0),
+    -- Portal de clientes-empresa (grupo selecto, alta manual desde el admin):
+    -- vínculo opcional 1:1 con auth.users. La gran mayoría de clientes
+    -- (WhatsApp/mostrador) nunca tiene cuenta, por eso es nullable.
+    -- acceso_portal es un flag aparte para poder revocar sin desvincular
+    -- ni borrar la cuenta de Supabase Auth.
+    auth_user_id          uuid REFERENCES auth.users (id) ON DELETE SET NULL,
+    acceso_portal         boolean NOT NULL DEFAULT false,
     created_at            timestamptz NOT NULL DEFAULT now(),
     updated_at            timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX ix_clientes_telefono ON public.clientes (telefono);
+CREATE UNIQUE INDEX ux_clientes_auth_user_id ON public.clientes (auth_user_id) WHERE auth_user_id IS NOT NULL;
 
 -- ────────────────────────────────────────────────────────────────
 -- 3. CATEGORIAS
@@ -262,7 +286,11 @@ CREATE INDEX ix_pedido_pago_historial_pedido_id ON public.pedido_pago_historial 
 CREATE TABLE public.inventario (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     producto_unidad_id  uuid NOT NULL UNIQUE REFERENCES public.producto_unidades (id) ON DELETE CASCADE,
-    stock_actual        decimal(10, 3) NOT NULL DEFAULT 0 CHECK (stock_actual >= 0),
+    -- Puede quedar en negativo: un pedido se puede confirmar aunque no
+    -- haya stock suficiente (la compra correspondiente se hace después,
+    -- ver /api/reportes/compras). Un negativo es señal de déficit real,
+    -- no un estado inválido.
+    stock_actual        decimal(10, 3) NOT NULL DEFAULT 0,
     stock_minimo        decimal(10, 3) NOT NULL DEFAULT 0 CHECK (stock_minimo >= 0),
     stock_maximo        decimal(10, 3) CHECK (stock_maximo IS NULL OR stock_maximo >= stock_minimo),
     unidad_medida       varchar(30) NOT NULL,
@@ -313,8 +341,10 @@ CREATE TABLE public.inventario_movimientos (
     tipo             varchar(20) NOT NULL
                      CONSTRAINT ck_inventario_movimientos_tipo CHECK (tipo IN ('entrada', 'salida', 'ajuste')),
     cantidad         decimal(10, 3) NOT NULL,
-    stock_anterior   decimal(10, 3) NOT NULL CHECK (stock_anterior >= 0),
-    stock_nuevo      decimal(10, 3) NOT NULL CHECK (stock_nuevo >= 0),
+    -- Pueden ser negativos: reflejan fielmente stock_actual de INVENTARIO,
+    -- que ahora puede quedar en déficit (ver comentario en esa tabla).
+    stock_anterior   decimal(10, 3) NOT NULL,
+    stock_nuevo      decimal(10, 3) NOT NULL,
     motivo           text,
     created_at       timestamptz NOT NULL DEFAULT now()
 );
@@ -500,11 +530,9 @@ BEGIN
         RAISE EXCEPTION 'No existe registro de inventario para producto_unidad_id %', item.producto_unidad_id;
       END IF;
 
-      IF inv.stock_actual < item.cantidad THEN
-        RAISE EXCEPTION 'Stock insuficiente para producto_unidad_id % (disponible: %, requerido: %)',
-          item.producto_unidad_id, inv.stock_actual, item.cantidad;
-      END IF;
-
+      -- No se bloquea por falta de stock: el pedido se confirma igual y el
+      -- stock puede quedar negativo (déficit real, que /api/reportes/compras
+      -- ya usa para calcular cuánto falta comprar).
       nuevo_stock := inv.stock_actual - item.cantidad;
 
       UPDATE public.inventario
@@ -514,7 +542,8 @@ BEGIN
       INSERT INTO public.inventario_movimientos
         (inventario_id, pedido_id, usuario_id, tipo, cantidad, stock_anterior, stock_nuevo, motivo)
       VALUES
-        (inv.id, NEW.id, NEW.usuario_id, 'salida', item.cantidad, inv.stock_actual, nuevo_stock, 'pedido confirmado');
+        (inv.id, NEW.id, NEW.usuario_id, 'salida', item.cantidad, inv.stock_actual, nuevo_stock,
+         CASE WHEN nuevo_stock < 0 THEN 'pedido confirmado (stock insuficiente, queda en déficit)' ELSE 'pedido confirmado' END);
     END LOOP;
   END IF;
 

@@ -199,7 +199,10 @@ try
             };
         });
 
-    builder.Services.AddSingleton<IClaimsTransformation, SupabaseRoleClaimsTransformation>();
+    // Una sola instancia registrada: ASP.NET Core solo resuelve una
+    // IClaimsTransformation por request, no agrega todas las que estén
+    // registradas (ver comentario en CombinedClaimsTransformation).
+    builder.Services.AddSingleton<IClaimsTransformation, CombinedClaimsTransformation>();
 
     // ── Cliente HTTP hacia Supabase Auth (refresh / logout) ─────────
     builder.Services.AddHttpClient(AuthService.SupabaseAuthHttpClientName, client =>
@@ -238,6 +241,12 @@ try
     builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
     builder.Services.AddScoped<IClienteService, ClienteService>();
 
+    // ── Portal B2B (clientes-empresa) ─────────────────────────────────
+    // Reusa el mismo cliente HTTP de la Admin API que UsuarioService (misma
+    // base URL/credenciales de Service Role, ya registrado arriba).
+    builder.Services.AddScoped<IClientePortalContext, ClientePortalContext>();
+    builder.Services.AddScoped<IClientePortalService, ClientePortalService>();
+
     // ── Módulo Notas de Venta ────────────────────────────────────────
     builder.Services.AddScoped<INotaVentaRepository, NotaVentaRepository>();
     builder.Services.AddScoped<INotaVentaService, NotaVentaService>();
@@ -260,6 +269,11 @@ try
         // Vendedor/delivery no lo necesitan, tienen el módulo de productos completo.
         options.AddPolicy("AdminOAlmacenero", policy => policy
             .RequireClaim(SupabaseRoleClaimsTransformation.RoleClaimType, "admin", "almacenero"));
+
+        // Portal B2B: clientes-empresa autenticados, nunca staff (son dominios
+        // de autorización separados a propósito, ver PortalClienteClaimsTransformation).
+        options.AddPolicy("ClientePortal", policy => policy
+            .RequireClaim(PortalClienteClaimsTransformation.EsClientePortalClaimType, "true"));
     });
 
     // ── Swagger ──────────────────────────────────────────────────────

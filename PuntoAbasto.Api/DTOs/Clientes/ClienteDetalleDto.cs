@@ -10,5 +10,6 @@ public record ClienteDetalleDto(
     string? Email,
     int TotalPedidos,
     decimal TotalGastado,
+    bool AccesoPortal,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

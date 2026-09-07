@@ -94,5 +94,5 @@ public class ClienteService : IClienteService
     private static ClienteDetalleDto MapToDetalleDto(Cliente cliente) => new(
         cliente.Id, cliente.Nombre, cliente.Telefono, cliente.Direccion,
         cliente.ReferenciaDireccion, cliente.UbicacionGps, cliente.Email, cliente.TotalPedidos, cliente.TotalGastado,
-        cliente.CreatedAt, cliente.UpdatedAt);
+        cliente.AccesoPortal, cliente.CreatedAt, cliente.UpdatedAt);
 }

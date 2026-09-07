@@ -73,39 +73,7 @@ public class PedidoService : IPedidoService
             }
         }
 
-        var unidadIds = request.Items.Select(i => i.ProductoUnidadId).Distinct().ToList();
-        var unidades = await _db.ProductoUnidades
-            .Include(u => u.Producto)
-            .Where(u => unidadIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, ct);
-
-        var faltantes = unidadIds.Where(id => !unidades.ContainsKey(id)).ToList();
-        if (faltantes.Count > 0)
-        {
-            throw new ArgumentException($"No existen las unidades de producto: {string.Join(", ", faltantes)}.");
-        }
-
-        var items = new List<PedidoItem>();
-        foreach (var itemRequest in request.Items)
-        {
-            var unidad = unidades[itemRequest.ProductoUnidadId];
-            var producto = unidad.Producto!;
-
-            if (!producto.Activo || !producto.Disponible)
-            {
-                throw new InvalidOperationException($"'{producto.Nombre}' no está disponible actualmente.");
-            }
-
-            items.Add(new PedidoItem
-            {
-                ProductoUnidadId = unidad.Id,
-                ProductoNombre = producto.Nombre,
-                UnidadLabel = unidad.Label,
-                PrecioUnit = unidad.Precio,
-                Cantidad = itemRequest.Cantidad,
-                Subtotal = unidad.Precio * itemRequest.Cantidad
-            });
-        }
+        var items = await ConstruirItemsAsync(request.Items, ct);
 
         var subtotalPedido = items.Sum(i => i.Subtotal);
         if (request.Descuento > subtotalPedido)
@@ -130,6 +98,75 @@ public class PedidoService : IPedidoService
         await _db.SaveChangesAsync(ct);
 
         return await ObtenerPorIdAsync(pedido.Id, ct);
+    }
+
+    public async Task<PedidoDetalleDto> CrearParaClienteAsync(Guid clienteId, CrearPedidoPortalRequestDto request, CancellationToken ct)
+    {
+        var cliente = await _db.Clientes.FirstOrDefaultAsync(c => c.Id == clienteId, ct)
+            ?? throw new KeyNotFoundException($"No existe el cliente {clienteId}.");
+
+        var items = await ConstruirItemsAsync(request.Items, ct);
+        var subtotalPedido = items.Sum(i => i.Subtotal);
+
+        var pedido = new Pedido
+        {
+            Cliente = cliente,
+            Estado = "recibido",
+            Origen = "web",
+            Subtotal = subtotalPedido,
+            Descuento = 0,
+            Total = PedidoTotales.Calcular(subtotalPedido, descuento: 0, facturado: false),
+            Notas = request.Notas,
+            FechaEntregaEst = DateTimeOffset.UtcNow.AddHours(24),
+            Items = items
+        };
+
+        await _pedidoRepository.AgregarAsync(pedido, ct);
+        await _db.SaveChangesAsync(ct);
+
+        return await ObtenerPorIdAsync(pedido.Id, ct);
+    }
+
+    /// <summary>Valida existencia/disponibilidad de las unidades pedidas y arma los
+    /// PedidoItem con precio/subtotal congelados al momento del pedido. Compartido
+    /// por CrearAsync (carrito público) y CrearParaClienteAsync (portal B2B).</summary>
+    private async Task<List<PedidoItem>> ConstruirItemsAsync(List<CrearPedidoItemDto> itemsRequest, CancellationToken ct)
+    {
+        var unidadIds = itemsRequest.Select(i => i.ProductoUnidadId).Distinct().ToList();
+        var unidades = await _db.ProductoUnidades
+            .Include(u => u.Producto)
+            .Where(u => unidadIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, ct);
+
+        var faltantes = unidadIds.Where(id => !unidades.ContainsKey(id)).ToList();
+        if (faltantes.Count > 0)
+        {
+            throw new ArgumentException($"No existen las unidades de producto: {string.Join(", ", faltantes)}.");
+        }
+
+        var items = new List<PedidoItem>();
+        foreach (var itemRequest in itemsRequest)
+        {
+            var unidad = unidades[itemRequest.ProductoUnidadId];
+            var producto = unidad.Producto!;
+
+            if (!producto.Activo || !producto.Disponible)
+            {
+                throw new InvalidOperationException($"'{producto.Nombre}' no está disponible actualmente.");
+            }
+
+            items.Add(new PedidoItem
+            {
+                ProductoUnidadId = unidad.Id,
+                ProductoNombre = producto.Nombre,
+                UnidadLabel = unidad.Label,
+                PrecioUnit = unidad.Precio,
+                Cantidad = itemRequest.Cantidad,
+                Subtotal = unidad.Precio * itemRequest.Cantidad
+            });
+        }
+
+        return items;
     }
 
     public async Task<PedidoDetalleDto> ObtenerPorIdAsync(Guid id, CancellationToken ct)

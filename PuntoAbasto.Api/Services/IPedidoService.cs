@@ -8,6 +8,10 @@ public interface IPedidoService
 {
     Task<PedidoDetalleDto> CrearAsync(CrearPedidoRequestDto request, CancellationToken ct);
 
+    /// <summary>Crea un pedido para un cliente-portal ya autenticado (nunca resuelto por
+    /// teléfono): origen fijo "web", sin descuento. Ver PortalController.</summary>
+    Task<PedidoDetalleDto> CrearParaClienteAsync(Guid clienteId, CrearPedidoPortalRequestDto request, CancellationToken ct);
+
     Task<PedidoDetalleDto> ObtenerPorIdAsync(Guid id, CancellationToken ct);
 
     Task<PagedResultDto<PedidoListItemDto>> BuscarAsync(

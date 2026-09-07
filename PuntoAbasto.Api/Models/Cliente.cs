@@ -3,8 +3,9 @@ using System.Text.Json.Serialization;
 namespace PuntoAbasto.Api.Models;
 
 /// <summary>
-/// Cliente identificado por teléfono. Los clientes no tienen cuenta ni
-/// pasan por Supabase Auth: se crean/reutilizan al recibir un pedido.
+/// Cliente identificado por teléfono. La mayoría no tiene cuenta ni pasa por
+/// Supabase Auth (se crean/reutilizan al recibir un pedido) — la excepción es
+/// el grupo selecto de clientes-empresa con acceso al portal (AuthUserId).
 /// </summary>
 public class Cliente
 {
@@ -21,6 +22,15 @@ public class Cliente
     public string? Email { get; set; }
     public int TotalPedidos { get; set; }
     public decimal TotalGastado { get; set; }
+
+    /// <summary>Vínculo opcional con auth.users, seteado por el trigger de Postgres
+    /// cuando se habilita el acceso al portal (ver ClientePortalService).</summary>
+    public Guid? AuthUserId { get; set; }
+
+    /// <summary>Si puede loguearse al portal. Independiente de AuthUserId para poder
+    /// revocar sin desvincular ni borrar la cuenta de Supabase Auth.</summary>
+    public bool AccesoPortal { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
