@@ -57,7 +57,12 @@ public class ClientePortalService : IClientePortalService
 
         // El trigger on_auth_user_created (rama es_cliente_portal) corre dentro de la
         // misma transacción del INSERT en auth.users y vincula auth_user_id/acceso_portal
-        // acá mismo, así que para cuando la respuesta HTTP vuelve ya quedó hecho.
+        // acá mismo, así que para cuando la respuesta HTTP vuelve ya quedó hecho — pero
+        // lo hizo por fuera de este DbContext (via Postgres), así que la instancia de
+        // "cliente" que ya cargamos arriba quedó con los valores viejos en memoria.
+        // La recargamos para que quien llame a este método (y reuse el mismo DbContext,
+        // como ClientesController) vea el estado real en vez del que quedó cacheado.
+        await _db.Entry(cliente).ReloadAsync(ct);
     }
 
     public async Task RevocarAccesoAsync(Guid clienteId, CancellationToken ct)
