@@ -15,4 +15,10 @@ public interface IClientePortalService
     /// borrar la cuenta de Supabase Auth — alcanza para este alcance, no
     /// hace falta banear la cuenta de verdad.</summary>
     Task RevocarAccesoAsync(Guid clienteId, CancellationToken ct);
+
+    /// <summary>Fuerza una contraseña nueva sobre la cuenta de portal ya
+    /// vinculada (recuperación de acceso: el cliente la pide por WhatsApp,
+    /// el admin genera una temporal acá y se la reenvía). Falla si el
+    /// cliente todavía no tiene acceso habilitado.</summary>
+    Task RestablecerPasswordAsync(Guid clienteId, string passwordTemporal, CancellationToken ct);
 }

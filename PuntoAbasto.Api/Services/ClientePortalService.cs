@@ -74,6 +74,37 @@ public class ClientePortalService : IClientePortalService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task RestablecerPasswordAsync(Guid clienteId, string passwordTemporal, CancellationToken ct)
+    {
+        var cliente = await _db.Clientes.FirstOrDefaultAsync(c => c.Id == clienteId, ct)
+            ?? throw new KeyNotFoundException($"No existe el cliente {clienteId}.");
+
+        if (cliente.AuthUserId is null)
+        {
+            throw new ArgumentException("Este cliente todavía no tiene acceso al portal habilitado.");
+        }
+
+        if (string.IsNullOrWhiteSpace(passwordTemporal) || passwordTemporal.Length < 8)
+        {
+            throw new ArgumentException("La contraseña debe tener al menos 8 caracteres.");
+        }
+
+        var client = _httpClientFactory.CreateClient(UsuarioService.SupabaseAdminHttpClientName);
+
+        using var response = await client.PutAsJsonAsync($"users/{cliente.AuthUserId}", new SupabaseAdminUpdateUserRequest
+        {
+            Password = passwordTemporal
+        }, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await SafeReadErrorAsync(response, ct);
+            _logger.LogWarning("Supabase Admin API rechazó el restablecimiento de contraseña del cliente {ClienteId} ({Status}): {Error}",
+                clienteId, response.StatusCode, error);
+            throw new ArgumentException(error ?? "No se pudo restablecer la contraseña en Supabase Auth.");
+        }
+    }
+
     private static async Task<string?> SafeReadErrorAsync(HttpResponseMessage response, CancellationToken ct)
     {
         try

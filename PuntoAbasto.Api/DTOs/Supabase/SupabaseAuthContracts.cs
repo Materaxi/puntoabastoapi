@@ -59,6 +59,9 @@ internal class SupabaseAdminUpdateUserRequest
 
     [JsonPropertyName("ban_duration")]
     public string? BanDuration { get; set; }
+
+    [JsonPropertyName("password")]
+    public string? Password { get; set; }
 }
 
 /// <summary>Forma cruda (parcial) de la respuesta de la Admin API al crear/actualizar un usuario.</summary>

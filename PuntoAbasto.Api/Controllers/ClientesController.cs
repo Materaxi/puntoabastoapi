@@ -81,4 +81,16 @@ public class ClientesController : ControllerBase
         var cliente = await _clienteService.ObtenerPorIdAsync(id, ct);
         return Ok(cliente);
     }
+
+    /// <summary>Recuperación de acceso: el cliente-empresa se olvidó su contraseña y avisa
+    /// por WhatsApp, el admin genera una nueva temporal acá y se la reenvía. El cliente ya
+    /// puede elegir su propia contraseña desde el portal una vez que entra con la temporal.</summary>
+    [HttpPost("{id:guid}/acceso-portal/reset-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RestablecerPasswordPortal(
+        Guid id, [FromBody] RestablecerPasswordPortalRequestDto request, CancellationToken ct)
+    {
+        await _clientePortalService.RestablecerPasswordAsync(id, request.PasswordTemporal, ct);
+        return NoContent();
+    }
 }
