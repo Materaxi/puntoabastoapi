@@ -140,6 +140,32 @@ public class UsuarioService : IUsuarioService
         return MapToDto(usuario);
     }
 
+    public async Task RestablecerPasswordAsync(Guid id, string passwordTemporal, CancellationToken ct)
+    {
+        var usuario = await _db.Usuarios.FirstOrDefaultAsync(u => u.Id == id, ct)
+            ?? throw new KeyNotFoundException($"No existe el usuario {id}.");
+
+        if (string.IsNullOrWhiteSpace(passwordTemporal) || passwordTemporal.Length < 8)
+        {
+            throw new ArgumentException("La contraseña debe tener al menos 8 caracteres.");
+        }
+
+        var client = _httpClientFactory.CreateClient(SupabaseAdminHttpClientName);
+
+        using var response = await client.PutAsJsonAsync($"users/{usuario.Id}", new SupabaseAdminUpdateUserRequest
+        {
+            Password = passwordTemporal
+        }, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await SafeReadErrorAsync(response, ct);
+            _logger.LogWarning("Supabase Admin API rechazó el restablecimiento de contraseña del usuario {Id} ({Status}): {Error}",
+                id, response.StatusCode, error);
+            throw new ArgumentException(error ?? "No se pudo restablecer la contraseña en Supabase Auth.");
+        }
+    }
+
     private static string ValidarRol(string rol)
     {
         var normalizado = rol.Trim().ToLowerInvariant();

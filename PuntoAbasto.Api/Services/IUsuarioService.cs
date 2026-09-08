@@ -16,4 +16,8 @@ public interface IUsuarioService
     /// <summary>Actualiza nombre/rol vía Supabase Admin API (para que el trigger los
     /// mantenga sincronizados) y activo/ban_duration para bloquear o restaurar el login.</summary>
     Task<UsuarioDto> ActualizarAsync(Guid id, ActualizarUsuarioRequestDto request, CancellationToken ct);
+
+    /// <summary>Fuerza una contraseña nueva sobre la cuenta de un usuario interno
+    /// (recuperación de acceso: se olvidó la suya, otro admin genera una temporal).</summary>
+    Task RestablecerPasswordAsync(Guid id, string passwordTemporal, CancellationToken ct);
 }

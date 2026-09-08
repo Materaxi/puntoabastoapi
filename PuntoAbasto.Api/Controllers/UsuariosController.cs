@@ -62,4 +62,15 @@ public class UsuariosController : ControllerBase
         var usuario = await _usuarioService.ActualizarAsync(id, request, ct);
         return Ok(usuario);
     }
+
+    /// <summary>Recuperación de acceso: otro admin le genera una temporal nueva a un
+    /// usuario interno que se olvidó la suya.</summary>
+    [HttpPost("{id:guid}/reset-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> RestablecerPassword(
+        Guid id, [FromBody] RestablecerPasswordUsuarioRequestDto request, CancellationToken ct)
+    {
+        await _usuarioService.RestablecerPasswordAsync(id, request.PasswordTemporal, ct);
+        return NoContent();
+    }
 }
