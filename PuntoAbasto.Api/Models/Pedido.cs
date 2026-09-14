@@ -30,6 +30,11 @@ public class Pedido
     /// <summary>qr | efectivo | transferencia. Null si Pagado es false.</summary>
     public string? MetodoPago { get; set; }
 
+    /// <summary>qr | efectivo | transferencia. Lo elige el cliente al hacer el pedido
+    /// (checkout del storefront); es una declaración de intención, no confirma que ya
+    /// esté pagado — eso lo sigue marcando el staff en MetodoPago/Pagado.</summary>
+    public string? FormaPago { get; set; }
+
     /// <summary>Si es true, Total incluye el 16% de IVA sobre (Subtotal - Descuento),
     /// ver Helpers.PedidoTotales. Independiente de Estado y Pagado.</summary>
     public bool Facturado { get; set; }

@@ -89,6 +89,7 @@ public class PedidoService : IPedidoService
             Subtotal = subtotalPedido,
             Descuento = request.Descuento,
             Total = PedidoTotales.Calcular(subtotalPedido, request.Descuento, facturado: false),
+            FormaPago = request.FormaPago,
             Notas = request.Notas,
             FechaEntregaEst = DateTimeOffset.UtcNow.AddHours(24),
             Items = items
@@ -408,6 +409,7 @@ public class PedidoService : IPedidoService
         pedido.Total,
         pedido.Pagado,
         pedido.MetodoPago,
+        pedido.FormaPago,
         pedido.FechaPago,
         pedido.Facturado,
         pedido.Notas,

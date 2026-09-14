@@ -193,6 +193,10 @@ CREATE TABLE public.pedidos (
     -- Null si pagado es false; requerido por la API al marcar pagado = true.
     metodo_pago         varchar(20)
                         CONSTRAINT ck_pedidos_metodo_pago CHECK (metodo_pago IN ('qr', 'efectivo', 'transferencia')),
+    -- Elegida por el cliente al hacer el pedido (checkout del storefront). Es una
+    -- declaracion de intencion, no confirma que ya este pagado (eso es metodo_pago).
+    forma_pago          varchar(20)
+                        CONSTRAINT ck_pedidos_forma_pago CHECK (forma_pago IN ('qr', 'efectivo', 'transferencia')),
     fecha_pago          timestamptz,
     -- Si es true, total incluye 16% de IVA sobre (subtotal - descuento).
     facturado           boolean NOT NULL DEFAULT false,

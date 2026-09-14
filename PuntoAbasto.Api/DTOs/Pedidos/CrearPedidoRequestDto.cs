@@ -27,6 +27,10 @@ public class CrearPedidoRequestDto
     /// <summary>whatsapp | web | telefono. Default: "web" (viene del carrito).</summary>
     public string Origen { get; set; } = "web";
 
+    /// <summary>qr | efectivo | transferencia. Opcional.</summary>
+    [RegularExpression("^(qr|efectivo|transferencia)$")]
+    public string? FormaPago { get; set; }
+
     public string? Notas { get; set; }
 
     [Range(0, double.MaxValue)]

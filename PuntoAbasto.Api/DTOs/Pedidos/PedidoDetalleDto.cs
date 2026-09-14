@@ -12,6 +12,7 @@ public record PedidoDetalleDto(
     decimal Total,
     bool Pagado,
     string? MetodoPago,
+    string? FormaPago,
     DateTimeOffset? FechaPago,
     bool Facturado,
     string? Notas,
