@@ -30,9 +30,16 @@ public class PedidoRepository : IPedidoRepository
     {
         var query = _db.Pedidos.Include(p => p.Cliente).AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(filtro.Estado))
+        if (filtro.Estados is not null)
         {
-            query = query.Where(p => p.Estado == filtro.Estado);
+            // Lista explícita, incluso vacía: 0 estados seleccionados = 0 resultados,
+            // no "sin filtro" (eso sería confuso en un checklist de checkboxes).
+            query = query.Where(p => filtro.Estados.Contains(p.Estado));
+        }
+
+        if (filtro.ExcluirEntregadosPagados)
+        {
+            query = query.Where(p => !(p.Estado == "entregado" && p.Pagado));
         }
 
         if (filtro.ClienteId is not null)

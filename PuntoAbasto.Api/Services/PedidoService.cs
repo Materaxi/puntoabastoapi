@@ -180,18 +180,19 @@ public class PedidoService : IPedidoService
     }
 
     public async Task<PagedResultDto<PedidoListItemDto>> BuscarAsync(
-        string? estado, Guid? clienteId, bool? pagado, DateTimeOffset? desde, DateTimeOffset? hasta,
-        int page, int pageSize, CancellationToken ct)
+        IReadOnlyList<string>? estados, Guid? clienteId, bool? pagado, DateTimeOffset? desde, DateTimeOffset? hasta,
+        bool excluirEntregadosPagados, int page, int pageSize, CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(estado) && !PedidoEstadoTransiciones.EstadosValidos.Contains(estado))
+        var estadoInvalido = estados?.FirstOrDefault(e => !PedidoEstadoTransiciones.EstadosValidos.Contains(e));
+        if (!string.IsNullOrEmpty(estadoInvalido))
         {
-            throw new ArgumentException($"Estado '{estado}' no es válido.");
+            throw new ArgumentException($"Estado '{estadoInvalido}' no es válido.");
         }
 
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > PageSizeMaximo ? 20 : pageSize;
 
-        var filtro = new PedidoFiltro(estado, clienteId, pagado, desde, hasta, page, pageSize);
+        var filtro = new PedidoFiltro(estados, clienteId, pagado, desde, hasta, excluirEntregadosPagados, page, pageSize);
         var (pedidos, totalCount) = await _pedidoRepository.BuscarAsync(filtro, ct);
 
         var items = pedidos.Select(MapToListItemDto).ToList();

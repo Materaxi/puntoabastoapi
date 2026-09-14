@@ -40,16 +40,24 @@ public class PedidosController : ControllerBase
     [Authorize]
     [ProducesResponseType(typeof(PagedResultDto<PedidoListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<PagedResultDto<PedidoListItemDto>>> Buscar(
-        [FromQuery] string? estado,
+        [FromQuery] string? estados,
         [FromQuery] Guid? clienteId,
         [FromQuery] bool? pagado,
         [FromQuery] DateTimeOffset? desde,
         [FromQuery] DateTimeOffset? hasta,
+        [FromQuery] bool excluirEntregadosPagados = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var resultado = await _pedidoService.BuscarAsync(estado, clienteId, pagado, desde, hasta, page, pageSize, ct);
+        // "estados" es una lista separada por comas (ej. "recibido,confirmado"); ausente
+        // = sin filtrar, presente (incluso vacío tras el split) = lista explícita.
+        var estadosLista = estados is null
+            ? null
+            : (IReadOnlyList<string>)estados.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var resultado = await _pedidoService.BuscarAsync(
+            estadosLista, clienteId, pagado, desde, hasta, excluirEntregadosPagados, page, pageSize, ct);
         return Ok(resultado);
     }
 
