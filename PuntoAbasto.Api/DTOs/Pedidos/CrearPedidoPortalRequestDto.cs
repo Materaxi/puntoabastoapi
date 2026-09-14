@@ -9,6 +9,10 @@ namespace PuntoAbasto.Api.DTOs.Pedidos;
 /// </summary>
 public class CrearPedidoPortalRequestDto
 {
+    /// <summary>qr | efectivo | transferencia. Opcional.</summary>
+    [RegularExpression("^(qr|efectivo|transferencia)$")]
+    public string? FormaPago { get; set; }
+
     public string? Notas { get; set; }
 
     [Required, MinLength(1, ErrorMessage = "El pedido debe tener al menos un item.")]

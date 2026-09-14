@@ -113,10 +113,11 @@ public class PedidoService : IPedidoService
         {
             Cliente = cliente,
             Estado = "recibido",
-            Origen = "web",
+            Origen = "portal",
             Subtotal = subtotalPedido,
             Descuento = 0,
             Total = PedidoTotales.Calcular(subtotalPedido, descuento: 0, facturado: false),
+            FormaPago = request.FormaPago,
             Notas = request.Notas,
             FechaEntregaEst = DateTimeOffset.UtcNow.AddHours(24),
             Items = items
@@ -338,6 +339,13 @@ public class PedidoService : IPedidoService
         {
             throw new InvalidOperationException(
                 $"No se puede pasar el pedido {pedido.Numero} de '{pedido.Estado}' a '{nuevoEstado}'.");
+        }
+
+        // Delivery solo entrega: no confirma, prepara, despacha ni cancela pedidos.
+        var esDelivery = usuario.HasClaim(SupabaseRoleClaimsTransformation.RoleClaimType, "delivery");
+        if (esDelivery && nuevoEstado != "entregado")
+        {
+            throw new UnauthorizedAccessException("Delivery solo puede marcar pedidos como entregados.");
         }
 
         var usuarioId = usuario.GetUsuarioId();

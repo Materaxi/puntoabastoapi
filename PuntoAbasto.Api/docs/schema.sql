@@ -182,7 +182,7 @@ CREATE TABLE public.pedidos (
                           estado IN ('recibido', 'confirmado', 'preparando', 'en_camino', 'entregado', 'cancelado')
                         ),
     origen              varchar(20) NOT NULL DEFAULT 'whatsapp'
-                        CONSTRAINT ck_pedidos_origen CHECK (origen IN ('whatsapp', 'web', 'telefono')),
+                        CONSTRAINT ck_pedidos_origen CHECK (origen IN ('whatsapp', 'web', 'telefono', 'portal')),
     subtotal            decimal(10, 2) NOT NULL CHECK (subtotal >= 0),
     descuento           decimal(10, 2) NOT NULL DEFAULT 0 CHECK (descuento >= 0),
     total               decimal(10, 2) NOT NULL CHECK (total >= 0),
