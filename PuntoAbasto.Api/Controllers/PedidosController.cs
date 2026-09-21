@@ -128,4 +128,45 @@ public class PedidosController : ControllerBase
         var pedido = await _pedidoService.ActualizarPrecioItemAsync(id, itemId, request.PrecioUnit, User, ct);
         return Ok(pedido);
     }
+
+    /// <summary>Agrega un producto a un pedido ya creado. Bloqueado si el pedido está
+    /// cancelado o pagado.</summary>
+    [HttpPost("{id:guid}/items")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(PedidoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PedidoDetalleDto>> AgregarItem(
+        Guid id, [FromBody] AgregarPedidoItemRequestDto request, CancellationToken ct)
+    {
+        var pedido = await _pedidoService.AgregarItemAsync(id, request.ProductoUnidadId, request.Cantidad, User, ct);
+        return Ok(pedido);
+    }
+
+    /// <summary>Corrige la cantidad de un ítem ya cargado. Bloqueado si el pedido está
+    /// cancelado o pagado.</summary>
+    [HttpPatch("{id:guid}/items/{itemId:guid}/cantidad")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(PedidoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PedidoDetalleDto>> ActualizarCantidadItem(
+        Guid id, Guid itemId, [FromBody] ActualizarCantidadItemRequestDto request, CancellationToken ct)
+    {
+        var pedido = await _pedidoService.ActualizarCantidadItemAsync(id, itemId, request.Cantidad, User, ct);
+        return Ok(pedido);
+    }
+
+    /// <summary>Quita un ítem de un pedido ya creado. Bloqueado si el pedido está
+    /// cancelado, pagado, o es el único ítem.</summary>
+    [HttpDelete("{id:guid}/items/{itemId:guid}")]
+    [Authorize(Policy = "AdminOVendedor")]
+    [ProducesResponseType(typeof(PedidoDetalleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<PedidoDetalleDto>> EliminarItem(Guid id, Guid itemId, CancellationToken ct)
+    {
+        var pedido = await _pedidoService.EliminarItemAsync(id, itemId, User, ct);
+        return Ok(pedido);
+    }
 }

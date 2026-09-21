@@ -12,4 +12,7 @@ public record PedidoListItemDto(
     bool Pagado,
     string? MetodoPago,
     bool Facturado,
-    DateTimeOffset FechaPedido);
+    DateTimeOffset FechaPedido,
+    /// <summary>Observación dejada al marcar "entregado" (entrega no conforme).
+    /// Null si se entregó conforme o si todavía no se entregó.</summary>
+    string? ObservacionEntrega);

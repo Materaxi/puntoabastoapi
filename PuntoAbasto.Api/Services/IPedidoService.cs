@@ -42,4 +42,23 @@ public interface IPedidoService
     /// cambio en PEDIDO_ITEM_PRECIO_HISTORIAL.</summary>
     Task<PedidoDetalleDto> ActualizarPrecioItemAsync(
         Guid pedidoId, Guid itemId, decimal nuevoPrecio, ClaimsPrincipal usuario, CancellationToken ct);
+
+    /// <summary>Agrega un producto a un pedido ya creado (bloqueado si está cancelado
+    /// o pagado). Si ya hay un ítem con la misma unidad, suma la cantidad al existente
+    /// en vez de duplicar la fila. Si el pedido ya pasó de "recibido" (el stock ya se
+    /// descontó al confirmar), ajusta también el inventario.</summary>
+    Task<PedidoDetalleDto> AgregarItemAsync(
+        Guid pedidoId, Guid productoUnidadId, decimal cantidad, ClaimsPrincipal usuario, CancellationToken ct);
+
+    /// <summary>Corrige la cantidad de un ítem ya cargado (bloqueado si el pedido está
+    /// cancelado o pagado). Ajusta el inventario por la diferencia si el stock ya se
+    /// había descontado.</summary>
+    Task<PedidoDetalleDto> ActualizarCantidadItemAsync(
+        Guid pedidoId, Guid itemId, decimal nuevaCantidad, ClaimsPrincipal usuario, CancellationToken ct);
+
+    /// <summary>Elimina un ítem de un pedido ya creado (bloqueado si está cancelado,
+    /// pagado, o es el único ítem del pedido). Revierte el inventario si el stock ya
+    /// se había descontado.</summary>
+    Task<PedidoDetalleDto> EliminarItemAsync(
+        Guid pedidoId, Guid itemId, ClaimsPrincipal usuario, CancellationToken ct);
 }
