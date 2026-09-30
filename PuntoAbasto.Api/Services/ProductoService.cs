@@ -348,7 +348,7 @@ public class ProductoService : IProductoService
         producto.Unidades
             .Where(u => u.Disponible)
             .OrderBy(u => u.Orden)
-            .Select(u => new ProductoUnidadPublicaDto(u.Id, u.Label, u.Precio, u.EsDefault, u.Inventario?.StockActual > 0))
+            .Select(u => new ProductoUnidadPublicaDto(u.Id, u.Label, u.Precio, u.EsDefault, u.Inventario?.StockActual > 0, u.Inventario?.UnidadMedida))
             .ToList());
 
     private static ProductoInternoDto MapToInternoDto(Producto producto) => new(
