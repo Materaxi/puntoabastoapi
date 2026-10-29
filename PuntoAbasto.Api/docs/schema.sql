@@ -136,6 +136,7 @@ CREATE TABLE public.productos (
     id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     categoria_id  int NOT NULL REFERENCES public.categorias (id) ON DELETE RESTRICT,
     nombre        varchar(150) NOT NULL,
+    codigo        varchar(50),
     descripcion   text,
     emoji         varchar(10),
     imagen_url    varchar(255),
@@ -149,6 +150,9 @@ CREATE TABLE public.productos (
 
 CREATE INDEX ix_productos_categoria_id ON public.productos (categoria_id);
 CREATE INDEX ix_productos_activo_disponible ON public.productos (activo, disponible);
+-- Código interno opcional (buscador del panel); índice parcial: permite
+-- múltiples productos sin código (NULL), pero no códigos duplicados.
+CREATE UNIQUE INDEX ux_productos_codigo ON public.productos (codigo) WHERE codigo IS NOT NULL;
 
 -- ────────────────────────────────────────────────────────────────
 -- 5. PRODUCTO_UNIDADES

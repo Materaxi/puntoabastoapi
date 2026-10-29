@@ -10,6 +10,9 @@ public class CrearProductoRequestDto
     [Required, StringLength(150)]
     public string Nombre { get; set; } = string.Empty;
 
+    [StringLength(50)]
+    public string? Codigo { get; set; }
+
     public string? Descripcion { get; set; }
     public string? Emoji { get; set; }
     public string? ImagenUrl { get; set; }

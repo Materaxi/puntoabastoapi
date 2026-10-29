@@ -66,6 +66,7 @@ public class ProductoService : IProductoService
         {
             CategoriaId = request.CategoriaId,
             Nombre = request.Nombre,
+            Codigo = NormalizarCodigo(request.Codigo),
             Descripcion = request.Descripcion,
             Emoji = request.Emoji,
             ImagenUrl = request.ImagenUrl,
@@ -106,6 +107,7 @@ public class ProductoService : IProductoService
 
         producto.CategoriaId = request.CategoriaId;
         producto.Nombre = request.Nombre;
+        producto.Codigo = NormalizarCodigo(request.Codigo);
         producto.Descripcion = request.Descripcion;
         producto.Emoji = request.Emoji;
         producto.ImagenUrl = request.ImagenUrl;
@@ -321,6 +323,12 @@ public class ProductoService : IProductoService
         await _db.SaveChangesAsync(ct);
     }
 
+    // "" se guarda como NULL: el índice único parcial solo ignora NULL, así que
+    // un formulario que siempre manda el campo (vacío si no se cargó código) no
+    // chocaría entre sí si se guardara "" literal.
+    private static string? NormalizarCodigo(string? codigo) =>
+        string.IsNullOrWhiteSpace(codigo) ? null : codigo.Trim();
+
     private static void ValidarUnaSolaDefault(List<CrearProductoUnidadRequestDto> unidades)
     {
         var defaults = unidades.Count(u => u.EsDefault);
@@ -356,6 +364,7 @@ public class ProductoService : IProductoService
         producto.CategoriaId,
         producto.Categoria!.Nombre,
         producto.Nombre,
+        producto.Codigo,
         producto.Descripcion,
         producto.Emoji,
         producto.ImagenUrl,

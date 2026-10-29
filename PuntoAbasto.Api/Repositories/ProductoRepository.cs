@@ -67,7 +67,9 @@ public class ProductoRepository : IProductoRepository
 
         if (!string.IsNullOrWhiteSpace(filtro.Busqueda))
         {
-            query = query.Where(p => EF.Functions.ILike(p.Nombre, $"%{filtro.Busqueda}%"));
+            query = query.Where(p =>
+                EF.Functions.ILike(p.Nombre, $"%{filtro.Busqueda}%") ||
+                (p.Codigo != null && EF.Functions.ILike(p.Codigo, $"%{filtro.Busqueda}%")));
         }
 
         var totalCount = await query.CountAsync(ct);

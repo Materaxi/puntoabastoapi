@@ -5,6 +5,7 @@ public record ProductoInternoDto(
     int CategoriaId,
     string CategoriaNombre,
     string Nombre,
+    string? Codigo,
     string? Descripcion,
     string? Emoji,
     string? ImagenUrl,

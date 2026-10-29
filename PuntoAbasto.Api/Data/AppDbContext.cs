@@ -73,6 +73,13 @@ public class AppDbContext : DbContext
                   .WithMany(c => c.Productos)
                   .HasForeignKey(e => e.CategoriaId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            // Código interno opcional (para quien busca por código en vez de por
+            // nombre); índice parcial, ver schema.sql — permite múltiples NULL.
+            entity.HasIndex(e => e.Codigo)
+                  .IsUnique()
+                  .HasFilter("codigo IS NOT NULL")
+                  .HasDatabaseName("ux_productos_codigo");
         });
 
         // ── PRODUCTO_UNIDADES ────────────────────────────────────
