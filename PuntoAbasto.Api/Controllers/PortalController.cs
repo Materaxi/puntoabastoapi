@@ -61,7 +61,7 @@ public class PortalController : ControllerBase
     {
         var cliente = await _clientePortalContext.ObtenerClienteActualAsync(User, ct);
         var resultado = await _pedidoService.BuscarAsync(
-            estados: null, clienteId: cliente.Id, pagado: null, desde: null, hasta: null,
+            estados: null, clienteId: cliente.Id, clienteNombre: null, pagado: null, desde: null, hasta: null,
             excluirEntregadosPagados: false, page, pageSize, ct);
         return Ok(resultado);
     }

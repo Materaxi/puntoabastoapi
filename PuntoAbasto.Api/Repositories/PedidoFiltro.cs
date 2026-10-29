@@ -3,6 +3,8 @@ namespace PuntoAbasto.Api.Repositories;
 public record PedidoFiltro(
     IReadOnlyList<string>? Estados,
     Guid? ClienteId,
+    /// <summary>Búsqueda parcial (ILIKE) por nombre de cliente, para el buscador del panel.</summary>
+    string? ClienteNombre,
     bool? Pagado,
     DateTimeOffset? Desde,
     DateTimeOffset? Hasta,

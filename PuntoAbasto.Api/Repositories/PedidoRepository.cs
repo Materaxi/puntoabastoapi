@@ -47,6 +47,11 @@ public class PedidoRepository : IPedidoRepository
             query = query.Where(p => p.ClienteId == filtro.ClienteId);
         }
 
+        if (!string.IsNullOrWhiteSpace(filtro.ClienteNombre))
+        {
+            query = query.Where(p => EF.Functions.ILike(p.Cliente!.Nombre, $"%{filtro.ClienteNombre}%"));
+        }
+
         if (filtro.Pagado is not null)
         {
             query = query.Where(p => p.Pagado == filtro.Pagado);

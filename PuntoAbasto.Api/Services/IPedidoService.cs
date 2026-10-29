@@ -16,10 +16,13 @@ public interface IPedidoService
 
     /// <summary>estados: lista explícita de estados a incluir, o null para no filtrar
     /// por estado. Una lista vacía es válida y devuelve 0 resultados (a diferencia de
-    /// null) — así un checklist de checkboxes sin nada tildado no trae "todo".</summary>
+    /// null) — así un checklist de checkboxes sin nada tildado no trae "todo".
+    /// clienteNombre: búsqueda parcial, sin distinguir mayúsculas, para el buscador
+    /// de pedidos por nombre de cliente del panel.</summary>
     Task<PagedResultDto<PedidoListItemDto>> BuscarAsync(
-        IReadOnlyList<string>? estados, Guid? clienteId, bool? pagado, DateTimeOffset? desde, DateTimeOffset? hasta,
-        bool excluirEntregadosPagados, int page, int pageSize, CancellationToken ct);
+        IReadOnlyList<string>? estados, Guid? clienteId, string? clienteNombre, bool? pagado,
+        DateTimeOffset? desde, DateTimeOffset? hasta, bool excluirEntregadosPagados,
+        int page, int pageSize, CancellationToken ct);
 
     Task<PedidoDetalleDto> CambiarEstadoAsync(
         Guid id, string nuevoEstado, string? observacion, ClaimsPrincipal usuario, CancellationToken ct);

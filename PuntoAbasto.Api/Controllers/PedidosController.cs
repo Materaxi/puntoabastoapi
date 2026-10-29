@@ -42,6 +42,7 @@ public class PedidosController : ControllerBase
     public async Task<ActionResult<PagedResultDto<PedidoListItemDto>>> Buscar(
         [FromQuery] string? estados,
         [FromQuery] Guid? clienteId,
+        [FromQuery] string? q,
         [FromQuery] bool? pagado,
         [FromQuery] DateTimeOffset? desde,
         [FromQuery] DateTimeOffset? hasta,
@@ -57,7 +58,7 @@ public class PedidosController : ControllerBase
             : (IReadOnlyList<string>)estados.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         var resultado = await _pedidoService.BuscarAsync(
-            estadosLista, clienteId, pagado, desde, hasta, excluirEntregadosPagados, page, pageSize, ct);
+            estadosLista, clienteId, q, pagado, desde, hasta, excluirEntregadosPagados, page, pageSize, ct);
         return Ok(resultado);
     }
 

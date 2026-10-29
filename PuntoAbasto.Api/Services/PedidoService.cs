@@ -180,8 +180,9 @@ public class PedidoService : IPedidoService
     }
 
     public async Task<PagedResultDto<PedidoListItemDto>> BuscarAsync(
-        IReadOnlyList<string>? estados, Guid? clienteId, bool? pagado, DateTimeOffset? desde, DateTimeOffset? hasta,
-        bool excluirEntregadosPagados, int page, int pageSize, CancellationToken ct)
+        IReadOnlyList<string>? estados, Guid? clienteId, string? clienteNombre, bool? pagado,
+        DateTimeOffset? desde, DateTimeOffset? hasta, bool excluirEntregadosPagados,
+        int page, int pageSize, CancellationToken ct)
     {
         var estadoInvalido = estados?.FirstOrDefault(e => !PedidoEstadoTransiciones.EstadosValidos.Contains(e));
         if (!string.IsNullOrEmpty(estadoInvalido))
@@ -192,7 +193,7 @@ public class PedidoService : IPedidoService
         page = page < 1 ? 1 : page;
         pageSize = pageSize is < 1 or > PageSizeMaximo ? 20 : pageSize;
 
-        var filtro = new PedidoFiltro(estados, clienteId, pagado, desde, hasta, excluirEntregadosPagados, page, pageSize);
+        var filtro = new PedidoFiltro(estados, clienteId, clienteNombre, pagado, desde, hasta, excluirEntregadosPagados, page, pageSize);
         var (pedidos, totalCount) = await _pedidoRepository.BuscarAsync(filtro, ct);
 
         // Trae la última observación de entrega (marcada "no conforme") de cada
