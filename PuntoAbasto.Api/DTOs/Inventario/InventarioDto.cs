@@ -5,6 +5,7 @@ public record InventarioDto(
     Guid ProductoUnidadId,
     Guid ProductoId,
     string ProductoNombre,
+    string? ProductoCodigo,
     string UnidadLabel,
     decimal StockActual,
     decimal StockMinimo,

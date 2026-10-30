@@ -177,7 +177,7 @@ public class InventarioService : IInventarioService
         var producto = unidad.Producto!;
 
         return new InventarioDto(
-            inventario.Id, unidad.Id, producto.Id, producto.Nombre, unidad.Label,
+            inventario.Id, unidad.Id, producto.Id, producto.Nombre, producto.Codigo, unidad.Label,
             inventario.StockActual, inventario.StockMinimo, inventario.StockMaximo,
             inventario.UnidadMedida, inventario.AlertaActiva, inventario.UpdatedAt);
     }
